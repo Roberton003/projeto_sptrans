@@ -1,0 +1,9 @@
+2025-08-17 16:00:44,193 - INFO - Serviço de coleta de POSIÇÕES da SPTrans (com filtro) iniciado.
+2025-08-17 16:00:44,207 - INFO - 8 letreiros de linha alvo carregados para filtragem.
+2025-08-17 16:00:44,207 - INFO - Coleta de posições agendada para verificação a cada 30 minutos.
+2025-08-17 16:00:44,208 - INFO - Executando um ciclo de coleta inicial para teste...
+2025-08-17 16:00:44,208 - INFO - Iniciando novo ciclo de coleta de POSIÇÕES com filtro inteligente...
+2025-08-17 16:00:44,530 - INFO - API retornou 3420 veículos. Após o filtro, 55 serão salvos.
+/mnt/arquivos/Data Science/Engenheiro de Dados_Azure/projeto_sptrans/coleta_sptrans.py:147: DeprecationWarning: The default datetime adapter is deprecated as of Python 3.12; see the sqlite3 documentation for suggested replacement recipes
+  cursor.executemany("""
+2025-08-17 16:00:44,554 - INFO - 55 novos registros de POSIÇÃO foram salvos no banco de dados.

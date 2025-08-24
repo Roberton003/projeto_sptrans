@@ -1,0 +1,73 @@
+# Define uma seção "x-base-service" para compartilhar configurações comuns entre os serviços.
+# Isso evita repetição e facilita a manutenção.
+x-base-service: &base-service
+  # 'build: .' instrui o Compose a construir a imagem a partir do Dockerfile no diretório atual.
+  build: .
+  # 'restart: unless-stopped' garante que o container reinicie automaticamente se falhar,
+  # a menos que tenha sido parado manualmente. Isso aumenta a resiliência.
+  restart: unless-stopped
+  # 'volumes' mapeia pastas do seu computador (host) para dentro do container.
+  # Isso é crucial para persistir dados e carregar configurações.
+  volumes:
+    # Mapeia a pasta local 'data' para '/app/data' no container.
+    # O banco de dados SQLite salvo aqui será persistido no seu computador.
+    - ./data:/app/data
+    # Mapeia o arquivo de configuração local para dentro do container.
+    - ./config/config.ini:/app/config/config.ini
+
+# A seção 'services' define os containers individuais que compõem a aplicação.
+services:
+  # Serviço para o coletor de posições de ônibus.
+  coleta-posicoes:
+    # '<<: *base-service' aplica todas as configurações do nosso &base-service.
+    <<: *base-service
+    # 'container_name' define um nome legível para o container.
+    container_name: sptrans_coleta_posicoes
+    # 'command' sobrescreve o CMD do Dockerfile, especificando o que este serviço deve executar.
+    command: python3 coleta_sptrans.py
+
+  # Serviço para o coletor de previsões de chegada.
+  coleta-previsoes:
+    <<: *base-service
+    container_name: sptrans_coleta_previsoes
+    command: python3 coleta_previsoes.py
+
+  # Serviço para executar a análise sob demanda.
+  analise:
+    <<: *base-service
+    container_name: sptrans_analise
+    # 'restart: "no"' garante que este container não inicie automaticamente com 'docker-compose up'.
+    # Ele só será executado quando você rodar 'docker-compose run analise'.
+    restart: "no"
+    command: python3 analise_onibus.py
+
+  # Serviço para rodar o ambiente de análise exploratória (Jupyter Lab)
+  notebook:
+    <<: *base-service
+    container_name: sptrans_notebook
+    # Mapeia a porta 8888 do host para a 8888 do container para acessarmos o Jupyter
+    ports:
+      - "8888:8888"
+    # Monta o diretório inteiro do projeto para podermos editar os notebooks ao vivo
+    volumes:
+      - .:/app
+    # Sobrescreve o restart para não iniciar automaticamente
+    restart: "no"
+    # Comando para iniciar o jupyter lab, permitindo acesso de qualquer IP, sem token.
+    command: >
+      sh -c "jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''"
+
+  # Serviço para o Dashboard com Streamlit
+  dashboard:
+    <<: *base-service
+    container_name: sptrans_dashboard
+    # Mapeia a porta 8501 (padrão do Streamlit) para a sua máquina
+    ports:
+      - "8501:8501"
+    # Monta o diretório inteiro para que o Streamlit possa servir o script e ler os relatórios
+    volumes:
+      - .:/app
+    restart: "no"
+    # Comando para iniciar o streamlit
+    command: >
+      sh -c "streamlit run dashboard_sptrans.py --server.port=8501 --server.address=0.0.0.0"

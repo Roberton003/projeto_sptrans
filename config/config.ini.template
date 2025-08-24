@@ -1,0 +1,6 @@
+[SPTRANS]
+TOKEN = SEU_TOKEN_AQUI
+
+[COLETA]
+# Lista de IDs das linhas mais movimentadas (ida e volta)
+LINHAS_ALVO = 2160, 34928, 198, 32966, 2173, 34941, 1, 32769, 1465, 34233, 456, 33224, 614, 33382, 1273, 34041

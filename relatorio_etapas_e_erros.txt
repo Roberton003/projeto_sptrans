@@ -1,0 +1,44 @@
+# Relatório de Erros Corrigidos e Etapas Realizadas
+
+## Erros Corrigidos
+
+1. **Arquivo não encontrado ao executar o script**
+   - Mensagem: `python: can't open file ... [Errno 2] No such file or directory`
+   - Solução: Corrigido o caminho do arquivo e orientado a entrar na pasta correta do projeto antes de executar o script.
+
+2. **Erro de autorização na API SPTrans**
+   - Mensagem: `Erro ao coletar posições: {"Message":"Authorization has been denied for this request."}`
+   - Solução: Ajustado o código para usar uma sessão autenticada do requests, mantendo o cookie de autenticação nas requisições subsequentes.
+
+3. **Ambiente virtual não encontrado**
+   - Mensagem: `bash: venv/bin/activate: Arquivo ou diretório inexistente`
+   - Solução: Orientado a criar o ambiente virtual com `python3 -m venv venv` antes de ativar.
+
+4. **Dependências não instaladas**
+   - Solução: Orientado a instalar o pacote `requests` com `pip install requests`.
+
+
+## Etapas Realizadas
+
+1. **Criação da Estrutura do Projeto**
+   - Pastas: `data/`, `scripts/`, `notebooks/`, `reports/`, `config/`.
+   - Organização para separar coleta, análise, relatórios e configurações.
+
+2. **Criação do Script de Coleta**
+   - Arquivo `coleta_sptrans.py` criado para autenticar e coletar dados da API SPTrans.
+   - Uso de sessão autenticada para manter o login entre as requisições.
+   - Salvamento dos dados coletados em `posicoes_onibus.json`.
+
+3. **Configuração do Ambiente Virtual**
+   - Criação do ambiente virtual com `python3 -m venv venv`.
+   - Ativação do ambiente virtual com `source venv/bin/activate`.
+   - Instalação das dependências necessárias.
+
+4. **Execução e Validação**
+   - Execução do script com sucesso, gerando o arquivo `posicoes_onibus.json` com os dados reais da API SPTrans.
+
+---
+
+**Resumo:**
+
+Foram corrigidos problemas de caminho, autenticação, ambiente virtual e dependências. O projeto foi estruturado de forma profissional e o script de coleta está funcional, gerando dados reais em formato JSON prontos para análise.

@@ -1,0 +1,9 @@
+pandas
+folium
+plotly
+schedule
+notebook
+requests
+matplotlib
+geopy
+streamlit

@@ -1,0 +1,39 @@
+### Sugestão de Texto para o LinkedIn
+
+**(Comece com um "gancho" para gerar curiosidade)**
+
+Você já se perguntou sobre a eficiência do transporte público em uma das maiores cidades do mundo? Como a engenharia de dados pode nos ajudar a entender a dinâmica da frota de ônibus de São Paulo em tempo real?
+
+**(Apresente o projeto e o problema)**
+
+Estou animado(a) para compartilhar meu mais recente projeto de portfólio em Engenharia de Dados: um sistema completo de monitoramento e análise da frota de ônibus da SPTrans! O desafio era construir uma pipeline de dados ponta-a-ponta, desde a coleta de dados em tempo real da API Olho Vivo até a geração de um dashboard com insights acionáveis.
+
+**(Destaque a solução e suas habilidades técnicas - a parte mais importante!)**
+
+Para resolver este problema, desenvolvi uma solução robusta e resiliente, aplicando conceitos modernos de engenharia de dados:
+
+🔹 **Coleta e Armazenamento:** Scripts Python para ingestão contínua de dados da API, com armazenamento histórico em um banco de dados SQLite.
+
+🔹 **Containerização Profissional:** Todo o ambiente do projeto foi encapsulado com **Docker** e orquestrado com **Docker Compose**. Isso garante 100% de consistência e portabilidade, eliminando o clássico problema do "funciona na minha máquina" e preparando o projeto para um deploy em nuvem.
+
+🔹 **Análise e Processamento de Dados:** Utilizei **Pandas** e **GeoPy** para limpar, transformar e analisar os dados. Implementei métricas de negócio como o tempo restante de viagem (incluindo o tratamento de casos de borda, como a "virada da meia-noite") e um sistema de detecção de anomalias para identificar ônibus parados.
+
+🔹 **Visualização Interativa:** Desenvolvi um dashboard interativo com **Streamlit** para apresentar os resultados, incluindo um mapa da frota e gráficos dinâmicos.
+
+**(Encerre com um convite para engajamento)**
+
+Este projeto foi uma jornada incrível de aprendizado, desde a arquitetura do sistema até a análise final. O código-fonte completo e a documentação detalhada da jornada estão no meu GitHub.
+
+Adoraria receber feedbacks e discutir as tecnologias e abordagens utilizadas!
+
+**(Adicione as hashtags)**
+
+#DataEngineering #Python #Docker #DockerCompose #Streamlit #Pandas #GeoPy #DataAnalysis #Portfolio #ETL #DataStorytelling #SPTrans
+
+---
+
+### Dica de Ouro para a Publicação:
+
+**USE UMA IMAGEM!** Posts no LinkedIn com recursos visuais têm um engajamento muito maior.
+
+Tire um **print screen (captura de tela) do seu dashboard Streamlit** em ação, mostrando o mapa e os gráficos com as abas organizadas, e anexe à publicação. Um bom visual faz toda a diferença e valoriza imensamente o seu trabalho.

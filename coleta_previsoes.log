@@ -1,0 +1,92 @@
+2025-08-17 16:00:43,648 - INFO - Iniciando serviço de coleta de previsões. Intervalo: 300 segundos.
+2025-08-17 16:00:43,649 - INFO - Linhas alvo carregadas da configuração: [2160, 34928, 198, 32966, 2173, 34941, 1, 32769, 1465, 34233, 456, 33224, 614, 33382, 1273, 34041]
+2025-08-17 16:00:43,995 - INFO - Coletando previsões para a linha: 2160
+2025-08-17 16:00:44,200 - INFO - Coletando previsões para a linha: 34928
+2025-08-17 16:00:44,279 - INFO - Coletando previsões para a linha: 198
+2025-08-17 16:00:44,417 - INFO - Coletando previsões para a linha: 32966
+2025-08-17 16:00:44,525 - INFO - Coletando previsões para a linha: 2173
+2025-08-17 16:00:44,607 - INFO - Coletando previsões para a linha: 34941
+2025-08-17 16:00:44,681 - INFO - Coletando previsões para a linha: 1
+2025-08-17 16:00:44,751 - INFO - Coletando previsões para a linha: 32769
+2025-08-17 16:00:44,820 - INFO - Coletando previsões para a linha: 1465
+2025-08-17 16:00:45,019 - INFO - Coletando previsões para a linha: 34233
+2025-08-17 16:00:45,141 - INFO - Coletando previsões para a linha: 456
+2025-08-17 16:00:45,305 - INFO - Coletando previsões para a linha: 33224
+2025-08-17 16:00:45,390 - INFO - Coletando previsões para a linha: 614
+2025-08-17 16:00:45,468 - WARNING - Nenhum dado de previsão foi coletado para a linha 614.
+2025-08-17 16:00:45,469 - INFO - Coletando previsões para a linha: 33382
+2025-08-17 16:00:45,544 - WARNING - Nenhum dado de previsão foi coletado para a linha 33382.
+2025-08-17 16:00:45,545 - INFO - Coletando previsões para a linha: 1273
+2025-08-17 16:00:45,639 - WARNING - Nenhum dado de previsão foi coletado para a linha 1273.
+2025-08-17 16:00:45,640 - INFO - Coletando previsões para a linha: 34041
+2025-08-17 16:00:45,710 - WARNING - Nenhum dado de previsão foi coletado para a linha 34041.
+/mnt/arquivos/Data Science/Engenheiro de Dados_Azure/projeto_sptrans/coleta_previsoes.py:112: DeprecationWarning: The default datetime adapter is deprecated as of Python 3.12; see the sqlite3 documentation for suggested replacement recipes
+  cursor.executemany("""
+2025-08-17 16:00:45,727 - INFO - 211 novos registros de previsão foram salvos no banco de dados.
+2025-08-17 16:00:45,728 - INFO - Ciclo de coleta finalizado. Aguardando 300 segundos.
+2025-08-17 16:05:45,822 - INFO - Coletando previsões para a linha: 2160
+2025-08-17 16:05:45,930 - INFO - Coletando previsões para a linha: 34928
+2025-08-17 16:05:46,019 - INFO - Coletando previsões para a linha: 198
+2025-08-17 16:05:46,118 - INFO - Coletando previsões para a linha: 32966
+2025-08-17 16:05:46,223 - INFO - Coletando previsões para a linha: 2173
+2025-08-17 16:05:46,333 - INFO - Coletando previsões para a linha: 34941
+2025-08-17 16:05:46,423 - INFO - Coletando previsões para a linha: 1
+2025-08-17 16:05:46,497 - INFO - Coletando previsões para a linha: 32769
+2025-08-17 16:05:46,573 - INFO - Coletando previsões para a linha: 1465
+2025-08-17 16:05:46,676 - INFO - Coletando previsões para a linha: 34233
+2025-08-17 16:05:46,773 - INFO - Coletando previsões para a linha: 456
+2025-08-17 16:05:46,882 - INFO - Coletando previsões para a linha: 33224
+2025-08-17 16:05:46,954 - INFO - Coletando previsões para a linha: 614
+2025-08-17 16:05:47,030 - WARNING - Nenhum dado de previsão foi coletado para a linha 614.
+2025-08-17 16:05:47,031 - INFO - Coletando previsões para a linha: 33382
+2025-08-17 16:05:47,099 - WARNING - Nenhum dado de previsão foi coletado para a linha 33382.
+2025-08-17 16:05:47,100 - INFO - Coletando previsões para a linha: 1273
+2025-08-17 16:05:47,166 - WARNING - Nenhum dado de previsão foi coletado para a linha 1273.
+2025-08-17 16:05:47,167 - INFO - Coletando previsões para a linha: 34041
+2025-08-17 16:05:47,238 - WARNING - Nenhum dado de previsão foi coletado para a linha 34041.
+2025-08-17 16:05:47,252 - INFO - 204 novos registros de previsão foram salvos no banco de dados.
+2025-08-17 16:05:47,252 - INFO - Ciclo de coleta finalizado. Aguardando 300 segundos.
+2025-08-17 16:10:47,533 - INFO - Coletando previsões para a linha: 2160
+2025-08-17 16:10:47,741 - INFO - Coletando previsões para a linha: 34928
+2025-08-17 16:10:47,830 - INFO - Coletando previsões para a linha: 198
+2025-08-17 16:10:47,930 - INFO - Coletando previsões para a linha: 32966
+2025-08-17 16:10:48,013 - INFO - Coletando previsões para a linha: 2173
+2025-08-17 16:10:48,123 - INFO - Coletando previsões para a linha: 34941
+2025-08-17 16:10:48,227 - INFO - Coletando previsões para a linha: 1
+2025-08-17 16:10:48,316 - INFO - Coletando previsões para a linha: 32769
+2025-08-17 16:10:48,411 - INFO - Coletando previsões para a linha: 1465
+2025-08-17 16:10:48,536 - INFO - Coletando previsões para a linha: 34233
+2025-08-17 16:10:48,626 - INFO - Coletando previsões para a linha: 456
+2025-08-17 16:10:48,711 - INFO - Coletando previsões para a linha: 33224
+2025-08-17 16:10:48,788 - INFO - Coletando previsões para a linha: 614
+2025-08-17 16:10:48,870 - WARNING - Nenhum dado de previsão foi coletado para a linha 614.
+2025-08-17 16:10:48,870 - INFO - Coletando previsões para a linha: 33382
+2025-08-17 16:10:48,951 - WARNING - Nenhum dado de previsão foi coletado para a linha 33382.
+2025-08-17 16:10:48,951 - INFO - Coletando previsões para a linha: 1273
+2025-08-17 16:10:49,023 - WARNING - Nenhum dado de previsão foi coletado para a linha 1273.
+2025-08-17 16:10:49,023 - INFO - Coletando previsões para a linha: 34041
+2025-08-17 16:10:49,113 - WARNING - Nenhum dado de previsão foi coletado para a linha 34041.
+2025-08-17 16:10:49,135 - INFO - 172 novos registros de previsão foram salvos no banco de dados.
+2025-08-17 16:10:49,136 - INFO - Ciclo de coleta finalizado. Aguardando 300 segundos.
+2025-08-17 16:15:49,228 - INFO - Coletando previsões para a linha: 2160
+2025-08-17 16:15:49,363 - INFO - Coletando previsões para a linha: 34928
+2025-08-17 16:15:49,476 - INFO - Coletando previsões para a linha: 198
+2025-08-17 16:15:49,578 - INFO - Coletando previsões para a linha: 32966
+2025-08-17 16:15:49,672 - INFO - Coletando previsões para a linha: 2173
+2025-08-17 16:15:49,744 - INFO - Coletando previsões para a linha: 34941
+2025-08-17 16:15:49,816 - INFO - Coletando previsões para a linha: 1
+2025-08-17 16:15:49,893 - INFO - Coletando previsões para a linha: 32769
+2025-08-17 16:15:49,966 - INFO - Coletando previsões para a linha: 1465
+2025-08-17 16:15:50,087 - INFO - Coletando previsões para a linha: 34233
+2025-08-17 16:15:50,216 - INFO - Coletando previsões para a linha: 456
+2025-08-17 16:15:50,304 - INFO - Coletando previsões para a linha: 33224
+2025-08-17 16:15:50,392 - INFO - Coletando previsões para a linha: 614
+2025-08-17 16:15:50,465 - WARNING - Nenhum dado de previsão foi coletado para a linha 614.
+2025-08-17 16:15:50,465 - INFO - Coletando previsões para a linha: 33382
+2025-08-17 16:15:50,544 - WARNING - Nenhum dado de previsão foi coletado para a linha 33382.
+2025-08-17 16:15:50,544 - INFO - Coletando previsões para a linha: 1273
+2025-08-17 16:15:50,624 - WARNING - Nenhum dado de previsão foi coletado para a linha 1273.
+2025-08-17 16:15:50,624 - INFO - Coletando previsões para a linha: 34041
+2025-08-17 16:15:50,693 - WARNING - Nenhum dado de previsão foi coletado para a linha 34041.
+2025-08-17 16:15:50,707 - INFO - 202 novos registros de previsão foram salvos no banco de dados.
+2025-08-17 16:15:50,707 - INFO - Ciclo de coleta finalizado. Aguardando 300 segundos.

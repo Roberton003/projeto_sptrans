@@ -1,0 +1,30 @@
+# Ignorar o ambiente virtual local. Nunca deve estar em uma imagem.
+venv/
+
+# Ignorar a pasta de dados. Os dados são gerenciados por volumes.
+data/
+
+# Ignorar arquivos e pastas do Git
+.git/
+.gitignore
+
+# Ignorar arquivos de cache do Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignorar arquivos de log
+*.log
+
+# Ignorar arquivos de configuração de IDEs
+.vscode/
+.idea/
+
+# Ignorar arquivos de sistema operacional
+.DS_Store
+
+# Ignorar o próprio arquivo .dockerignore
+.dockerignore
+
+# Ignorar checkpoints de notebooks
+.ipynb_checkpoints/
