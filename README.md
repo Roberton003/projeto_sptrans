@@ -184,6 +184,4 @@ Essas etapas foram cruciais para estabelecer uma base sólida para o projeto, pe
 
 Sinta-se à vontade para contribuir com este projeto! Por favor, consulte o arquivo `CONTRIBUTING.md` para mais detalhes sobre como começar.
 
-## Licença
 
-Este projeto está licenciado sob a [Nome da Licença, ex: Licença MIT]. Veja o arquivo `LICENSE` para mais detalhes.
