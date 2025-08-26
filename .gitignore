@@ -1,3 +1,29 @@
-
+# Arquivos de log
+*.log
 logs/
+
+# Banco de dados e arquivos de dados
+*.db
+*.csv
+*.json
+data/
+
+# Pasta de arquivos não essenciais
+arquivos_nao_essenciais/
+
+# Relatórios
+reports/
+
+# Ambiente virtual do Python
+venv/
+.venv/
+
+# Arquivos de cache do Python
 __pycache__/
+.pytest_cache/
+
+# Checkpoints do Jupyter Notebook
+.ipynb_checkpoints/
+
+# Arquivos de configuração local (o template continua no repositório)
+config/config.ini
