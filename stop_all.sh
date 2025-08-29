@@ -1,9 +1,4 @@
 #!/bin/bash
-
-echo "Parando scripts de coleta..."
-
-# Mata os processos pelo nome do arquivo de script
-pkill -f coleta_sptrans.py
-pkill -f coleta_previsoes.py
-
-echo "Processos de coleta parados."
+echo "Parando todos os serviços do Docker Compose..."
+docker-compose down
+echo "Serviços parados."
