@@ -25,8 +25,8 @@ def main():
 
         # 2. BUSCAR POSIÇÕES NA ÚLTIMA MEIA HORA
         # Usamos a função datetime do SQLite com o modificador 'localtime' para garantir que estamos usando o fuso horário local.
-        query_posicoes = "SELECT * FROM posicoes WHERE timestamp_coleta >= datetime('now', '-24 hours', 'localtime')"
-        logging.info("Executando query para buscar posições nas últimas 24 horas...")
+        query_posicoes = "SELECT * FROM posicoes"
+        logging.info("Executando query para buscar todas as posições...")
         posicoes_df = pd.read_sql_query(query_posicoes, conn)
         logging.info(f"{len(posicoes_df)} registros de posição encontrados.")
 
@@ -35,7 +35,7 @@ def main():
             return
 
         # 3. BUSCAR PREVISÕES NA ÚLTIMA MEIA HORA
-        query_previsoes = "SELECT * FROM previsoes WHERE timestamp_coleta >= datetime('now', '-24 hours', 'localtime')"
+        query_previsoes = "SELECT * FROM previsoes"
         logging.info("Executando query para buscar previsões nas últimas 24 horas...")
         previsoes_df = pd.read_sql_query(query_previsoes, conn)
         logging.info(f"{len(previsoes_df)} registros de previsão encontrados.")
@@ -70,6 +70,10 @@ def main():
         df_final = df_final[colunas_tabela] # Garante a ordem correta
 
         # 6. SALVAR O RESULTADO NO BANCO DE DADOS
+        logging.info("Limpando a tabela 'resultados_analise' antes de inserir novos dados...")
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM resultados_analise;")
+        conn.commit()
         logging.info(f"Salvando {len(df_final)} registros de análise na tabela 'resultados_analise'...")
         df_final.to_sql('resultados_analise', conn, if_exists='append', index=False)
         logging.info("Análise concluída e resultados salvos no banco de dados!")

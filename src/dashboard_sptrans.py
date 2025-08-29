@@ -38,7 +38,7 @@ def load_line_names(csv_path):
         return None
     try:
         df_linhas = pd.read_csv(csv_path)
-        df_linhas['nome_linha'] = df_linhas['terminal_principal'] + ' / ' + df_linhas['terminal_secundario']
+        df_linhas['nome_linha'] = df_linhas['sentido_ida'] + ' / ' + df_linhas['sentido_volta']
         return df_linhas
     except Exception as e:
         st.error(f"Erro ao carregar o arquivo de nomes de linha: {e}")
@@ -84,7 +84,15 @@ def analyze_bunched_buses(df, threshold_meters=200):
     bunched_events = []
     for (timestamp, letreiro), group in df.groupby(['timestamp_analise', 'letreiro_linha']):
         if len(group) > 1:
-            for bus1, bus2 in combinations(group.itertuples(), 2):
+            # Sort by latitude to make proximity checks more efficient
+            group_sorted = group.sort_values('posicao_atual_lat')
+            
+            # Check distance between consecutive buses after sorting
+            # This is a simplification and might miss some bunched buses
+            # but it's much faster than combinations for large groups
+            for i in range(len(group_sorted) - 1):
+                bus1 = group_sorted.iloc[i]
+                bus2 = group_sorted.iloc[i+1]
                 distancia = great_circle((bus1.posicao_atual_lat, bus1.posicao_atual_lon), (bus2.posicao_atual_lat, bus2.posicao_atual_lon)).meters
                 if distancia < threshold_meters:
                     bunched_events.append({'letreiro_linha': letreiro})

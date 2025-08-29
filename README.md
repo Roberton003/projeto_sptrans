@@ -114,53 +114,64 @@ Este projeto é uma solução completa para coleta, processamento, análise e vi
 
 ### Execução
 
+Você pode executar o projeto de duas formas: localmente ou via Docker. O modo Docker é o mais recomendado por garantir um ambiente consistente.
+
+#### Modo Containerizado (Docker - Recomendado)
+
+Assegure-se de ter o Docker e o plugin `compose` (V2) instalados. Os comandos abaixo utilizam a sintaxe moderna (`docker compose`).
+
+1.  **Construir e Iniciar Coletores de Dados:**
+    Este comando irá construir a imagem Docker e iniciar os serviços de coleta de dados (`coleta-posicoes` e `coleta-previsoes`) em segundo plano para popular o banco de dados.
+    ```bash
+    docker compose up --build -d
+    ```
+
+2.  **Executar a Análise de Dados (Pipeline Completo):**
+    A análise é um processo de duas etapas que você executa quando desejar analisar os dados coletados.
+
+    *   **Passo 1: Processar Dados Brutos**
+        Este comando executa `analise_onibus.py`, que lê todos os dados históricos do banco de dados e os prepara para a análise final.
+        ```bash
+        docker compose run --rm analise
+        ```
+
+    *   **Passo 2: Gerar Gráficos e Análise Final**
+        Após o passo 1, execute este comando para rodar `analise_completa.py`. Ele usará os dados processados para gerar os gráficos, que serão salvos no diretório `reports/`.
+        ```bash
+        docker compose run --rm analise python3 analise_completa.py
+        ```
+
+3.  **Parar os Serviços:**
+    Para parar os coletores de dados que estão rodando em segundo plano:
+    ```bash
+    docker compose down
+    ```
+
 #### Modo Local
 
-*   **Inicializar o Banco de Dados:**
+Se preferir não usar Docker, execute os scripts diretamente no seu terminal. Certifique-se de ter o ambiente virtual ativado (`source venv/bin/activate`) e as dependências instaladas.
+
+1.  **Inicializar o Banco de Dados (apenas na primeira vez):**
     ```bash
     python3 inicializar_banco.py
     ```
-*   **Coletar Dados:**
+
+2.  **Coletar Dados (se necessário):**
     ```bash
     python3 coleta_sptrans.py
     python3 coleta_previsoes.py
     ```
-*   **Rodar Análises:**
-    ```bash
-    python3 analise_completa.py
-    # Ou execute os notebooks Jupyter
-    jupyter lab
-    ```
-*   **Iniciar Dashboard:**
-    ```bash
-    python3 dashboard_sptrans.py
-    # Ou
-    python3 painel_interativo_sp.py
-    ```
-*   **Executar o Pipeline Completo (se `main.py` or `run_all.sh` or `Makefile` or `monitor.py` or `inicializar_banco.py` or `coleta_previsoes.py` or `coleta_sptrans.py` or `analise_completa.py` or `analise_onibus.py` or `analise_v2.py` or `dashboard_sptrans.py` or `painel_interativo_sp.py` or `consulta_sql_csv_sptrans.py` or `guia_api_olho_vivo_sptrans.py` is the entry point):**
-    ```bash
-    # Verifique o Makefile ou run_all.sh para o comando principal
-    make all # Exemplo, se houver um target 'all'
-    # Ou
-    ./run_all.sh
-    # Ou
-    python3 main.py # Se for o ponto de entrada principal
-    ```
 
-#### Modo Containerizado (Docker)
-
-1.  **Construir as imagens Docker:**
-    ```bash
-    docker-compose build
-    ```
-2.  **Iniciar os serviços:**
-    ```bash
-    docker-compose up -d
-    ```
-3.  **Parar os serviços:**
-    ```bash
-    docker-compose down
-    ```
+3.  **Executar a Análise de Dados (Pipeline Completo):**
+    *   **Passo 1: Processar Dados Brutos**
+        ```bash
+        python3 analise_onibus.py
+        ```
+    *   **Passo 2: Gerar Gráficos e Análise Final**
+        ```bash
+        python3 analise_completa.py
+        ```
+    Os gráficos serão salvos no diretório `reports/`.
 
 ## Desafios e Soluções
 

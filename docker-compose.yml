@@ -9,11 +9,7 @@ x-base-service: &base-service
   # 'volumes' mapeia pastas do seu computador (host) para dentro do container.
   # Isso é crucial para persistir dados e carregar configurações.
   volumes:
-    # Mapeia a pasta local 'data' para '/app/data' no container.
-    # O banco de dados SQLite salvo aqui será persistido no seu computador.
-    - ./data:/app/data
-    # Mapeia o arquivo de configuração local para dentro do container.
-    - ./config/config.ini:/app/config/config.ini
+    - .:/app
 
 # A seção 'services' define os containers individuais que compõem a aplicação.
 services:
@@ -24,13 +20,13 @@ services:
     # 'container_name' define um nome legível para o container.
     container_name: sptrans_coleta_posicoes
     # 'command' sobrescreve o CMD do Dockerfile, especificando o que este serviço deve executar.
-    command: python3 coleta_sptrans.py
+    command: python3 src/coleta_sptrans.py
 
   # Serviço para o coletor de previsões de chegada.
   coleta-previsoes:
     <<: *base-service
     container_name: sptrans_coleta_previsoes
-    command: python3 coleta_previsoes.py
+    command: python3 src/coleta_previsoes.py
 
   # Serviço para executar a análise sob demanda.
   analise:
@@ -39,7 +35,7 @@ services:
     # 'restart: "no"' garante que este container não inicie automaticamente com 'docker-compose up'.
     # Ele só será executado quando você rodar 'docker-compose run analise'.
     restart: "no"
-    command: python3 analise_onibus.py
+    command: python3 src/analise_onibus.py
 
   # Serviço para rodar o ambiente de análise exploratória (Jupyter Lab)
   notebook:
@@ -70,4 +66,4 @@ services:
     restart: "no"
     # Comando para iniciar o streamlit
     command: >
-      sh -c "streamlit run dashboard_sptrans.py --server.port=8501 --server.address=0.0.0.0"
+      sh -c "streamlit run src/dashboard_sptrans.py --server.port=8501 --server.address=0.0.0.0"

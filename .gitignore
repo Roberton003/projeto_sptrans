@@ -27,3 +27,6 @@ __pycache__/
 
 # Arquivos de configuração local (o template continua no repositório)
 config/config.ini
+
+# Arquivos arquivados
+arquivos_arquivados/
