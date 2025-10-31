@@ -30,3 +30,11 @@ config/config.ini
 
 # Arquivos arquivados
 arquivos_arquivados/
+
+# Documentação interna (ignorado em repo local e remoto)
+.docs_internos/
+
+# Arquivos arquivados e legados (ignorado em repo local e remoto)
+# Contém: analise_scrips/, arquivos_arquivados/, código antigo v1/v2, análises pontuais
+# NÃO sincroniza com GitHub - apenas local para preservar histórico
+.archived/
