@@ -38,3 +38,12 @@ arquivos_arquivados/
 # Contém: analise_scrips/, arquivos_arquivados/, código antigo v1/v2, análises pontuais
 # NÃO sincroniza com GitHub - apenas local para preservar histórico
 .archived/
+# Exceções: arquivos essenciais que devem ser versionados
+# Permitimos explicitamente os relatórios e scripts de análise necessários para o repositório público.
+!analise_banco_dados/relatorios/
+!analise_banco_dados/relatorios/*.csv
+!analise_banco_dados/relatorios/*.html
+!analise_banco_dados/relatorios/*.py
+!analise_banco_dados/relatorios/README.md
+!analise_banco_dados/queries/
+!analise_banco_dados/queries/*.sql

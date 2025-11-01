@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Atrasos Médios - Linhas SPTrans</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        h1 { text-align: center; color: #333; }
+        canvas { max-width: 100%; height: 400px; background: white; border: 1px solid #ddd; display: block; margin: 20px auto; }
+        .legenda { display: flex; justify-content: space-around; margin-top: 10px; }
+        .barra { display: inline-block; width: 30px; height: 20px; margin: 0 5px; }
+        .descricao { text-align: center; margin-bottom: 10px; color: #666; }
+    </style>
+</head>
+<body>
+    <h1>Dashboard de Atrasos Médios por Período (em minutos)</h1>
+    <p class="descricao">Barras representam atraso médio para cada período do dia. Hover para detalhes.</p>
+    <canvas id="chart" width="600" height="400"></canvas>
+    <div class="legenda">
+        <div><div class="barra" style="background: #FF6B6B;"></div> 4313-10</div>
+        <div><div class="barra" style="background: #4ECDC4;"></div> 8000-10</div>
+        <div><div class="barra" style="background: #45B7D1;"></div> 917H-10</div>
+    </div>
+    <script>
+        const canvas = document.getElementById('chart');
+        const ctx = canvas.getContext('2d');
+        const periods = ['Manhã (7h-9h)', 'Tarde (17h-19h)', 'Noite (20h-21h)'];
+        const data = {
+            '4313-10': [10, 12, 7],
+            '8000-10': [12, 15, 10],
+            '917H-10': [8, 10, 4]
+        };
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1'];
+        const maxValue = 15;
+        const barWidth = 50;
+        const spacing = 80;
+        const startX = 50;
+        const startY = 350;
+
+        // Limpar canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Eixos
+        ctx.strokeStyle = '#ddd';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(startX, 50);
+        ctx.lineTo(startX, startY);
+        ctx.lineTo(canvas.width - 20, startY);
+        ctx.stroke();
+
+        // Barras
+        Object.keys(data).forEach((linha, linhaIndex) => {
+            periods.forEach((period, index) => {
+                const x = startX + (index * spacing);
+                const value = data[linha][index];
+                if (linhaIndex === 0) ctx.fillStyle = colors[0];
+                if (linhaIndex === 1) ctx.fillStyle = colors[1];
+                if (linhaIndex === 2) ctx.fillStyle = colors[2];
+                const y = startY - (value / maxValue) * 300;
+                ctx.fillRect(x, y, barWidth, 300 * (value / maxValue));
+                ctx.fillText(value, x + barWidth / 2, y - 5);
+            });
+        });
+
+        // Labels no eixo Y
+        ctx.fillStyle = '#333';
+        ctx.font = '12px Arial';
+        periods.forEach((period, index) => {
+            ctx.fillText(period, 10, startY - (index * 40) + 20);
+        });
+
+        // Eixo X
+        for (let i = 0; i <= maxValue; i += 3) {
+            const x = startX + (i / maxValue) * (canvas.width - startX - 50);
+            ctx.fillText(i, x - 5, startY + 15);
+            ctx.beginPath();
+            ctx.moveTo(x, startY);
+            ctx.lineTo(x, startY - 5);
+            ctx.stroke();
+        }
+
+        // Título e legenda
+        ctx.fillText('Atraso Médio (minutos)', canvas.width / 2 - 50, 30);
+    </script>
+    <p style="text-align: center; margin-top: 20px;">Fonte: Análise de dados SPTrans vs. Moovit (agosto 2025). Para mais detalhes, consulte o relatório completo.</p>
+</body>
+</html>

@@ -1,0 +1,22 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+.env
+data/raw/
+*.sqlite
+*.db
+
+# Ignore outputs and large artifacts
+dashboard_atrasos_bi.html
+dashboard_interativo.html
+
+# Exceções: permitir arquivos essenciais de relatórios/versionamento
+!dashboard_atrasos_bi.html
+!dashboard_atrasos_simples.html
+!dashboard_atrasos.py
+!baseline_8000_10.csv
+!metrica_linhas_top.csv
+!previsoes_qualificadas.csv
+!README.md
