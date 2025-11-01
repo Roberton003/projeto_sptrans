@@ -134,15 +134,65 @@ else:
     kpi2.metric("Linhas Monitoradas", df_raw['letreiro_linha'].nunique())
     kpi3.metric("Eventos de 'Comboio' Detectados", len(bunched_df))
 
+    # Função para carregar métricas de qualidade ETL da pasta dedicada
+    @st.cache_data
+    def load_etl_insights(relatorios_path):
+        """Carrega relatórios de qualidade de dados da pasta analise_banco_dados/relatorios/."""
+        try:
+            # Carregar amostra previsões (taxa de completude)
+            previsoes_path = os.path.join(relatorios_path, 'amostra_previsoes_completas.txt')
+            if os.path.exists(previsoes_path):
+                df_previsoes = pd.read_csv(previsoes_path, names=['letreiro_linha', 'num_regs', 'taxa_previsao'], sep='|')
+                df_previsoes['taxa_previsao'] = df_previsoes['taxa_previsao'] * 100  # Para %
+            else:
+                df_previsoes = pd.DataFrame()
+
+            # Carregar geografia linhas top
+            geo_path = os.path.join(relatorios_path, 'geografia_linhas_top.txt')
+            if os.path.exists(geo_path):
+                df_geo = pd.read_csv(geo_path, names=['letreiro_linha', 'avg_lat', 'avg_lon', 'num_posicoes'], sep='|')
+            else:
+                df_geo = pd.DataFrame()
+
+            # Carregar CSV de métricas (se existir)
+            csv_path = os.path.join(relatorios_path, 'metrica_linhas_top.csv')
+            if os.path.exists(csv_path):
+                df_csv = pd.read_csv(csv_path)
+                df_csv['id_onibus'] = df_csv['id_onibus'].astype(int)  # Contagem
+            else:
+                df_csv = pd.DataFrame()
+
+            return df_previsoes, df_geo, df_csv
+        except Exception as e:
+            st.error(f"Erro ao carregar insights ETL: {e}")
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+    # Carregar insights ETL
+    relatorios_path = 'analise_banco_dados/relatorios'
+    df_previsoes, df_geo, df_csv = load_etl_insights(relatorios_path)
+
     # --- Abas para organizar o conteúdo ---
-    tab_mapa, tab_parados, tab_comboios = st.tabs(["📍 Mapa da Frota", "🛑 Ônibus Parados", "🚍 Comboios de Ônibus"])
+    tab_mapa, tab_parados, tab_comboios, tab_qualidade = st.tabs(["📍 Mapa da Frota", "🛑 Ônibus Parados", "🚍 Comboios de Ônibus", "📊 Qualidade ETL e Insights"])
 
     with tab_mapa:
         st.subheader(f"Exibindo a última posição conhecida para: {linha_selecionada}")
         df_mapa_latest = df_mapa.sort_values('timestamp_analise').drop_duplicates(subset=['id_onibus'], keep='last')
         df_mapa_latest = df_mapa_latest.rename(columns={'posicao_atual_lat': 'lat', 'posicao_atual_lon': 'lon'})
         if not df_mapa_latest[['lat', 'lon']].empty:
-            st.map(df_mapa_latest[['lat', 'lon']].dropna())
+            # Filtro adicional para dados completos (se previsões disponíveis no df)
+            if 'proximo_ponto_previsto' in df_raw.columns:
+                df_completa_map = df_raw.dropna(subset=['proximo_ponto_previsto'])
+                if linha_selecionada != "Todas":
+                    df_completa_map = df_completa_map[df_completa_map['letreiro_linha'] == linha_selecionada]
+                df_mapa_latest_completa = df_completa_map.sort_values('timestamp_analise').drop_duplicates(subset=['id_onibus'], keep='last')
+                df_mapa_latest_completa = df_mapa_latest_completa.rename(columns={'posicao_atual_lat': 'lat', 'posicao_atual_lon': 'lon'})
+                if not df_mapa_latest_completa.empty:
+                    st.map(df_mapa_latest_completa[['lat', 'lon']])
+                    st.info(f"Mapa filtrado para {len(df_mapa_latest_completa)} ônibus com previsões completas.")
+                else:
+                    st.warning("Nenhum dado completo para filtro de previsões na seleção atual.")
+            else:
+                st.map(df_mapa_latest[['lat', 'lon']].dropna())
         else:
             st.warning("Não há dados de localização para a seleção atual.")
 
@@ -176,3 +226,54 @@ else:
             contagem_enriquecida = enrich_with_line_names(contagem_por_linha.to_frame(name='contagem'), df_linhas)
             st.bar_chart(contagem_enriquecida['contagem'])
             st.markdown("**Comentário:** O gráfico acima mostra as linhas com maior ocorrência de 'comboios'. Linhas com muitas ocorrências podem ter problemas de regularidade na operação, causando longas esperas para passageiros seguidas da chegada de múltiplos veículos juntos.")
+
+    with tab_qualidade:
+        st.subheader("Qualidade de Dados ETL e Insights Gerados")
+        st.markdown("Esta aba mostra métricas de qualidade do ETL ( % completude de previsões) e insights geográficos para linhas top, baseado em análises filtradas na pasta `analise_banco_dados/relatorios/`.")
+
+        if not df_previsoes.empty:
+            st.subheader("Taxa de Completude de Previsões por Linha (Top 10)")
+            fig_previsoes = st.bar_chart(df_previsoes.set_index('letreiro_linha')['taxa_previsao'], use_container_width=True)
+            st.dataframe(df_previsoes.round(2))
+            st.info("Linhas com >80% de completude são ideais para análises de tempo de chegada confiáveis.")
+
+        if not df_geo.empty:
+            st.subheader("Métricas Geográficas: Centroides de Rotas para Linhas Top")
+            df_geo_display = df_geo.copy()
+            df_geo_display['regiao_estimada'] = df_geo_display.apply(lambda row: 'Centro SP' if -23.55 < row['avg_lat'] < -23.57 and -46.65 < row['avg_lon'] < -46.55 else 'Zona Leste' if row['avg_lon'] > -46.65 else 'Zona Oeste', axis=1)
+            # Selectbox interativo para linha específica
+            linha_geo = st.selectbox("Selecione uma linha para detalhes geográficos:", df_geo_display['letreiro_linha'].tolist())
+            if linha_geo:
+                linha_details = df_geo_display[df_geo_display['letreiro_linha'] == linha_geo].iloc[0]
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Avg Latitude", f"{linha_details['avg_lat']:.6f}")
+                col2.metric("Avg Longitude", f"{linha_details['avg_lon']:.6f}")
+                col3.metric("Número de Posições", linha_details['num_posicoes'])
+                st.info(f"Região estimada: {linha_details['regiao_estimada']} – Ideal para otimização de rotas locais.")
+            st.dataframe(df_geo_display.round(6))
+
+        if not df_csv.empty:
+            st.subheader("Métricas Detalhadas de Linhas Confiáveis (de Análise Filtrada)")
+            # Selectbox para filtrar CSV
+            linha_csv = st.selectbox("Selecione uma linha do CSV para visualizar:", df_csv.index.tolist() if not df_csv.empty else [])
+            if linha_csv:
+                linha_csv_data = df_csv.loc[linha_csv:linha_csv]
+                st.dataframe(linha_csv_data.round(6))
+            else:
+                st.dataframe(df_csv.round(6))
+            st.info("Contagens de registros por linha após filtro de dados completos; útil para priorizar dashboard.")
+
+        # Gráfico interativo adicional para tendências geográficas (se df_csv disponível)
+        if not df_csv.empty:
+            st.subheader("Tendências Geográficas nas Linhas Top")
+            # Gráfico de barras para num registros vs avg lat/lon (normalizado)
+            df_plot = df_csv.reset_index()
+            col_plot1, col_plot2 = st.columns(2)
+            with col_plot1:
+                st.bar_chart(df_plot.set_index('letreiro_linha')['id_onibus'])
+            with col_plot2:
+                st.line_chart(df_plot.set_index('letreiro_linha')[['posicao_atual_lat', 'posicao_atual_lon']])
+            st.info("Gráficos interativos: Barras para volume; Linha para variação geográfica por linha – clique para zoom.")
+
+        if df_previsoes.empty and df_geo.empty and df_csv.empty:
+            st.warning("Nenhum relatório de insights disponível ainda. Execute análises para gerar dados na pasta relatorios/.")

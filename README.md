@@ -88,6 +88,16 @@ Para usar o dashboard ou o ambiente de análise, execute os seguintes comandos e
     ```
     Acesse o Jupyter em: `http://localhost:8888`
 
+## 📚 Documentação Interna
+
+Para informações sobre planejamento, roadmap e melhorias do projeto, consulte a pasta `.docs_internos/`:
+
+- **Comece aqui:** `.docs_internos/GUIA_RAPIDO_COMECE_AQUI.md`
+- **Roadmap completo:** `.docs_internos/PRD_MELHORIAS_FASE2.md`
+- **Índice de documentos:** `.docs_internos/INDICE_DOCUMENTOS.md`
+
+> ℹ️ **Nota:** A pasta `.docs_internos/` é ignorada no repositório (não aparece no GitHub). É destinada a planejamento e desenvolvimento interno.
+
 ## Contribuição
 
 Sinta-se à vontade para contribuir! Por favor, consulte o arquivo `CONTRIBUTING.md` para mais detalhes.
