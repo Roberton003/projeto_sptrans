@@ -1,103 +1,88 @@
-# Projeto SPTrans: Pipeline de Dados de Transporte Público
+# 🚌 SPTrans Real-Time Public Transport Data Pipeline
 
-Este projeto implementa um pipeline de dados completo para coleta, processamento e visualização de dados em tempo real do transporte público de São Paulo, utilizando a API Olho Vivo da SPTrans.
+Este projeto implementa um pipeline de ingestão e análise de dados em tempo real para o transporte público de São Paulo, consumindo dados geográficos e operacionais diretamente da **API Olho Vivo da SPTrans**. 
 
-A arquitetura é baseada em Docker, com serviços modularizados para garantir escalabilidade e facilidade de manutenção.
+A arquitetura foi projetada para garantir resiliência operacional, modularização em containers e facilidade de análise exploratória, fornecendo dados prontos para visualização e inteligência de transporte.
 
-## Arquitetura e Serviços
+---
 
-*   **`coleta-posicoes`**: Serviço contínuo que captura dados de geolocalização dos ônibus.
-*   **`coleta-previsoes`**: Serviço contínuo que captura previsões de chegada dos ônibus nas paradas.
-*   **`dashboard`**: Serviço sob demanda que inicia um painel interativo em Streamlit para visualização dos dados.
-*   **`notebook`**: Serviço sob demanda que inicia um ambiente Jupyter Lab para análises exploratórias.
-*   **`analise`**: Serviço sob demanda para executar scripts de análise específicos.
+## 🏗️ Arquitetura do Sistema
 
-## Tecnologias Utilizadas
+O sistema é totalmente dockerizado e modularizado em microserviços compartilhando o mesmo ambiente isolado:
 
-*   **Linguagem:** Python 3.11
-*   **Pipeline e Orquestração:** Docker, Docker Compose
-*   **Bibliotecas Principais:** `requests`, `pandas`, `streamlit`
-*   **Controle de Versão:** Git, GitHub
+```mermaid
+graph TD
+    API[SPTrans API - Olho Vivo] -->|HTTPS Requests| Ingest[Coleta & Ingestão Python]
+    
+    subgraph Docker Containers
+        Ingest -->|Escrita concorrente| DB[(Data Storage - SQLite/Local)]
+        Notebook[Jupyter Notebook] -.->|Análise Exploratória| DB
+        Dashboard[Streamlit Dashboard] -->|Leitura e Filtro| DB
+    end
 
-## Estrutura do Projeto
-
-A estrutura foi reorganizada para isolar o código-fonte da aplicação:
-
-```
-.
-├── src/                     # Contém todo o código-fonte da aplicação
-│   ├── coleta_sptrans.py
-│   ├── coleta_previsoes.py
-│   ├── dashboard_sptrans.py
-│   └── utils/
-├── arquivos_arquivados/     # Scripts antigos e artefatos não essenciais
-├── docker-compose.yml       # Orquestração dos serviços
-├── Dockerfile               # Definição do ambiente da aplicação
-├── run_all.sh               # Script para INICIAR os coletores
-├── stop_all.sh              # Script para PARAR os coletores
-└── README.md
+    Dashboard -->|Visualização de Linhas & Previsões| User((Analytics / Operações))
 ```
 
-## Como Rodar o Projeto
+### Serviços do Docker Compose:
+*   **`coleta-posicoes`**: Coletor autônomo que realiza polling contínuo de geolocalização dos ônibus.
+*   **`coleta-previsoes`**: Coletor contínuo focado em capturar as estimativas de chegada dos veículos nas paradas.
+*   **`dashboard`**: Painel Streamlit que expõe indicadores de tráfego, atrasos e posições ativas em mapas.
+*   **`notebook`**: Ambiente Jupyter Lab para exploração analítica dos dados coletados.
+*   **`analise`**: Módulo isolado de análise estatística de dados históricos.
+
+---
+
+## 🛠️ Stack Tecnológica
+
+*   **Linguagem Core:** Python 3.11
+*   **Infraestrutura e DataOps:** Docker, Docker Compose, Make
+*   **Armazenamento de Dados:** SQLite (Time-series estruturado local)
+*   **Visualização e BI:** Streamlit, Pandas, Plotly/Matplotlib
+*   **Integrações:** Requests, urllib3 (com tratativas de conexões e retentativas)
+
+---
+
+## ⚡ Decisões de Engenharia & Resiliência
+1. **Compartilhamento de Configurações (`x-base-service`)**: O arquivo Docker Compose usa a sintaxe de âncora YAML para compartilhar a fundação comum entre coletores, Jupyter e Streamlit, reduzindo a duplicação e simplificando a manutenção da imagem.
+2. **Ingestão Concorrente Segura**: O design separa a coleta de posições geográficas e de previsões de parada em processos paralelos e autônomos. Se a API da SPTrans falhar em previsões, o mapeamento de posições continua rodando sem impacto.
+3. **Resiliência e Recuperação de Falhas**: Configuração de `restart: unless-stopped` nos containers de coleta garante que falhas de rede com a API da SPTrans reiniciem a thread de consumo automaticamente sem intervenção humana.
+
+---
+
+## 🚀 Como Rodar o Pipeline
 
 ### Pré-requisitos
+* Docker e Docker Compose instalados na máquina.
+* Token de Acesso da API Olho Vivo da SPTrans (cadastre-se no portal da SPTrans Developer).
 
-*   Docker e Docker Compose instalados.
-*   Uma chave de acesso (token) da API Olho Vivo da SPTrans.
+### Configuração de Variáveis de Ambiente
+Crie um arquivo `.env` na raiz do projeto ou configure sua chave de API nos coletores:
+```bash
+SPTRANS_API_TOKEN=seu_token_aqui
+```
 
-### Configuração
+### Inicialização Rápida
+O projeto conta com scripts auxiliares de controle:
 
-1.  **Clone o repositório:**
-    ```bash
-    git clone https://github.com/Roberton003/projeto_sptrans.git
-    cd projeto_sptrans
-    ```
-2.  **Configure a API Key:**
-    *   Crie o arquivo de configuração: `cp config/config.ini.template config/config.ini`
-    *   Edite o arquivo `config/config.ini` e insira sua chave da API.
+1. **Subir todo o ecossistema:**
+   ```bash
+   ./run_all.sh
+   ```
+   *Este script inicializará os coletores em segundo plano, o banco de dados e preparará o ambiente.*
 
-### Execução
+2. **Subir apenas o Dashboard Streamlit:**
+   ```bash
+   docker compose run --service-ports dashboard
+   ```
+   Acesse no navegador: `http://localhost:8501`
 
-O gerenciamento dos serviços é feito de forma simples através dos scripts `run_all.sh` e `stop_all.sh`.
+3. **Subir o Jupyter Lab para Análise Exploratória:**
+   ```bash
+   docker compose run --service-ports notebook
+   ```
+   Acesse no navegador: `http://localhost:8888` (sem senha configurada por padrão para ambiente local dev).
 
-1.  **Iniciar os Coletores de Dados:**
-    Este comando irá construir as imagens Docker (se for a primeira vez) e iniciar os serviços `coleta-posicoes` e `coleta-previsoes` em background.
-    ```bash
-    ./run_all.sh
-    ```
-
-2.  **Parar os Coletores de Dados:**
-    Este comando para e remove todos os contêineres da aplicação.
-    ```bash
-    ./stop_all.sh
-    ```
-
-## Como Usar os Serviços Adicionais
-
-Para usar o dashboard ou o ambiente de análise, execute os seguintes comandos em um novo terminal:
-
-*   **Para iniciar o Dashboard:**
-    ```bash
-    docker-compose run --rm -p 8501:8501 dashboard
-    ```
-    Acesse o dashboard em: `http://localhost:8501`
-
-*   **Para iniciar o Jupyter Lab:**
-    ```bash
-    docker-compose run --rm -p 8888:8888 notebook
-    ```
-    Acesse o Jupyter em: `http://localhost:8888`
-
-## 📚 Documentação Interna
-
-Para informações sobre planejamento, roadmap e melhorias do projeto, consulte a pasta `.docs_internos/`:
-
-- **Comece aqui:** `.docs_internos/GUIA_RAPIDO_COMECE_AQUI.md`
-- **Roadmap completo:** `.docs_internos/PRD_MELHORIAS_FASE2.md`
-- **Índice de documentos:** `.docs_internos/INDICE_DOCUMENTOS.md`
-
-> ℹ️ **Nota:** A pasta `.docs_internos/` é ignorada no repositório (não aparece no GitHub). É destinada a planejamento e desenvolvimento interno.
-
-## Contribuição
-
-Sinta-se à vontade para contribuir! Por favor, consulte o arquivo `CONTRIBUTING.md` para mais detalhes.
+4. **Encerrar todos os containers:**
+   ```bash
+   ./stop_all.sh
+   ```
