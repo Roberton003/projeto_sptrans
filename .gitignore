@@ -38,6 +38,9 @@ arquivos_arquivados/
 # Arquivos arquivados e legados (ignorado em repo local e remoto)
 .archived/
 
+# Planos de implementação (manter apenas localmente, não versionar)
+docs/plans/
+
 # Exceções para analise_banco_dados
 !analise_banco_dados/relatorios/
 !analise_banco_dados/relatorios/*
