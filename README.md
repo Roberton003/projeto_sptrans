@@ -1,103 +1,186 @@
 # 🚌 SPTrans Real-Time Public Transport Data Pipeline
 
+[![CI](https://github.com/Roberton003/projeto_sptrans/actions/workflows/ci.yml/badge.svg)](https://github.com/Roberton003/projeto_sptrans/actions/workflows/ci.yml)
+
 Pipeline de coleta, processamento e visualização de dados em tempo real do
 transporte público de São Paulo via API Olho Vivo da SPTrans.
-*   **`analise`**: Módulo isolado de análise estatística de dados históricos.
+
+Processa ~555k posições de ônibus/dia em três camadas conceituais:
+
+| Camada | Tecnologia | Função |
+|--------|-----------|--------|
+| **Bronze** (raw) | SQLite ↔ PostgreSQL | Armazenamento idempotente, dados crus |
+| **Silver** (analítico) | Parquet + DuckDB | Particionado por data, consultas rápidas |
+| **Orquestração** | Dagster | Schedules, observabilidade, confiabilidade |
+
+> 📖 Quer entender o projeto em profundidade? Veja o
+> [Wiki](https://github.com/Roberton003/projeto_sptrans/wiki) com diagramas
+> educativos, explicações camada a camada e boas práticas de engenharia de dados.
 
 ---
 
-## 🛠️ Stack Tecnológica
+## Conceitos de Arquitetura
 
-*   **Linguagem Core:** Python 3.11
-*   **Infraestrutura e DataOps:** Docker, Docker Compose, Make
-*   **Armazenamento de Dados:** SQLite (Time-series estruturado local)
-*   **Visualização e BI:** Streamlit, Pandas, Plotly/Matplotlib
-*   **Integrações:** Requests, urllib3 (com tratativas de conexões e retentativas)
+### Padrão Medallion (Bronze → Silver)
 
----
+O pipeline segue uma variação do padrão **Medallion** (também chamado de
+Multi-Hop Architecture), comum em lakehouses:
 
-## ⚡ Decisões de Engenharia & Resiliência
-1. **Compartilhamento de Configurações (`x-base-service`)**: O arquivo Docker Compose usa a sintaxe de âncora YAML para compartilhar a fundação comum entre coletores, Jupyter e Streamlit, reduzindo a duplicação e simplificando a manutenção da imagem.
-2. **Ingestão Concorrente Segura**: O design separa a coleta de posições geográficas e de previsões de parada em processos paralelos e autônomos. Se a API da SPTrans falhar em previsões, o mapeamento de posições continua rodando sem impacto.
-3. **Resiliência e Recuperação de Falhas**: Configuração de `restart: unless-stopped` nos containers de coleta garante que falhas de rede com a API da SPTrans reiniciem a thread de consumo automaticamente sem intervenção humana.
-
----
-
-## 🚀 Como Rodar o Pipeline
-
-### Pré-requisitos
-* Docker e Docker Compose instalados na máquina.
-* Token de Acesso da API Olho Vivo da SPTrans (cadastre-se no portal da SPTrans Developer).
-
-### Configuração de Variáveis de Ambiente
-Crie um arquivo `.env` na raiz do projeto ou configure sua chave de API nos coletores:
-```bash
-SPTRANS_API_TOKEN=seu_token_aqui
+```
+┌──────────┐    ┌──────────┐    ┌──────────┐
+│  BRONZE  │ →  │  SILVER  │ →  │  GOLD    │
+│ (cru)    │    │ (limpo)  │    │ (agreg.) │
+└──────────┘    └──────────┘    └──────────┘
 ```
 
-### Inicialização Rápida
-O projeto conta com scripts auxiliares de controle:
+1. **Bronze** — dados crus como chegam da API SPTrans, persistidos com
+   `INSERT OR IGNORE` para idempotência. Armazenamento: SQLite ou PostgreSQL.
+2. **Silver** — dados transformados para análise: Parquet particionado por
+   data, schema consistente, pronto para consultas com DuckDB.
+3. **Gold** (em desenvolvimento) — agregações, métricas de qualidade,
+   dashboards consolidados.
 
-1. **Subir todo o ecossistema:**
-   ```bash
-   ./run_all.sh
-   ```
-   *Este script inicializará os coletores em segundo plano, o banco de dados e preparará o ambiente.*
+### Idempotência: o Princípio Fundamental
 
-2. **Subir apenas o Dashboard Streamlit:**
-   ```bash
-   docker compose run --service-ports dashboard
-   ```
-   Acesse no navegador: `http://localhost:8501`
+Cada estágio do pipeline pode ser reexecutado sem duplicar dados:
 
-3. **Subir o Jupyter Lab para Análise Exploratória:**
-   ```bash
-   docker compose run --service-ports notebook
-   ```
-   Acesse no navegador: `http://localhost:8888` (sem senha configurada por padrão para ambiente local dev).
+- **Inserção:** `INSERT OR IGNORE` + chave `UNIQUE` → reexecutar o coletor
+  não gera duplicatas
+- **Compactação:** `COPY TO ... OVERWRITE_OR_IGNORE` → rodar a exportação
+  duas vezes para o mesmo dia produz Parquet idêntico
+- **Expurgo:** opera por janela deslizante é reversível (backup)
 
-Pipeline de coleta, processamento e visualização de dados em tempo real do
-transporte público de São Paulo via API Olho Vivo da SPTrans.
+### Abstração de Banco (`src/database.py`)
 
-Processa ~555k posições de ônibus/dia em duas camadas: **Bronze** (SQLite,
-insert idempotente) e **Silver** (Parquet particionado por data, DuckDB para
-análise e serving).
+O módulo de banco expõe uma interface única que funciona tanto com SQLite
+(desenvolvimento, testes) quanto PostgreSQL (produção, concorrência):
 
-## Stack
+```python
+from src.database import get_connection, insert_sql
 
-| Camada           | Tecnologia                        |
-| ---------------- | --------------------------------- |
-| Ingestão         | Python 3.12+, `requests` + SQLite |
-| Armazenamento    | SQLite + Apache Parquet           |
-| Processamento    | DuckDB + pandas                   |
-| Qualidade        | pytest + ruff + GitHub Actions    |
-| Orquestração     | Docker Compose (opcional)         |
+# Funciona igual nos dois backends
+with get_connection() as conn:
+    cursor = conn.cursor()
+    cursor.executemany(
+        insert_sql("posicoes", columns),
+        registros  # lista de tuplas
+    )
+```
 
-## Arquitetura
+A chave `DATABASE_URL` no ambiente decide o backend. Placeholders e sintaxe
+de conflito são resolvidos automaticamente.
+
+---
+
+## Como os Dados Fluem — Visão Educativa
+
+```
+      API Olho Vivo SPTrans
+              │
+              ▼
+    ┌─────────────────────┐
+    │   COLTADOR (src/)   │  ← executado a cada 5 min (posições)
+    │   requests + JSON   │     ou 15 min (previsões)
+    └─────────┬───────────┘
+              │
+              ▼
+    ┌─────────────────────┐
+    │   BRONZE STORAGE    │  ← INSERT OR IGNORE
+    │   SQLite / Postgres │     chaves UNIQUE evitam duplicatas
+    └─────────┬───────────┘
+              │
+       ┌──────┴──────┐
+       ▼             ▼
+  (compactação)  (expurgo)
+   │ 02:00       │ 03:00
+   ▼             ▼
+┌──────────┐  ┌──────────┐
+│  SILVER  │  │ janela   │ ← dados >7 dias viram
+│  Parquet  │  │ quente   │   só Parquet
+│  dt=YYYY  │  │ (Bronze) │
+└─────┬────┘  └──────────┘
+      │
+      ▼
+┌──────────┐    ┌──────────────┐
+│ Análise  │    │  Dashboard   │
+│ DuckDB   │    │  Streamlit   │
+│ CLI      │    │  fallback    │
+└──────────┘    └──────────────┘
+```
+
+### Passo a Passo
+
+1. **Coleta** — `coleta_sptrans.py` autentica na API Olho Vivo, baixa posições
+   de GPS das linhas configuradas, filtra apenas os letreiros de interesse e
+   persiste com `INSERT OR IGNORE` no SQLite/PostgreSQL.
+2. **Previsões** — `coleta_previsoes.py` faz o mesmo para previsões de chegada
+   por linha.
+3. **Compactação** — `compactar_parquet.py` lê o SQLite com DuckDB, particiona
+   por data e escreve Parquet em `data/parquet/`.
+4. **Expurgo** — `expurgar_sqlite.py` remove registros fora da janela
+   deslizante (padrão 7 dias) para manter o banco leve.
+5. **Análise** — `analise_onibus.py` consulta Parquet ou SQLite e gera
+   métricas (ônibus agrupados, stuck buses, etc.).
+6. **Dashboard** — `dashboard_sptrans.py` (Streamlit) carrega dados com
+   fallback automático: tenta Parquet primeiro, SQLite se não existir.
+
+---
+
+## Arquitetura (Dagster)
 
 ```mermaid
-flowchart LR
-    API[API Olho Vivo<br/>SPTrans] --> COLETA[Coletor<br/>coleta_sptrans.py]
+flowchart TB
+    subgraph BRONZE["Bronze — Raw Storage"]
+        API[API Olho Vivo SPTrans]
+        POS_COL[coleta_sptrans.py<br/>INSERT OR IGNORE]
+        PREV_COL[coleta_previsoes.py<br/>INSERT OR IGNORE]
+        SQLITE[(SQLite / PostgreSQL<br/>data/sptrans_data.db)]
+        API -->|"coleta a cada 5min"| POS_COL
+        API -->|"coleta a cada 15min"| PREV_COL
+        POS_COL --> SQLITE
+        PREV_COL --> SQLITE
+    end
 
-    COLETA --> SQLITE[SQLite<br/>data/sptrans_data.db]
-    COLETA --> PREVISAO[Coletor Previsões<br/>coleta_previsoes.py]
-    PREVISAO --> SQLITE
+    subgraph SILVER["Silver — Camada Analítica"]
+        COMPACTA[compactar_parquet.py<br/>DuckDB → Parquet<br/>OVERWRITE_OR_IGNORE]
+        EXPURGO[expurgar_sqlite.py<br/>Janela deslizante 7d]
+        PARQUET[(Parquet<br/>data/parquet/<br/>dt=YYYY-MM-DD)]
+        SQLITE --> COMPACTA
+        SQLITE --> EXPURGO
+        COMPACTA --> PARQUET
+    end
 
-    SQLITE --> COMPACTA[compactar_parquet.py<br/>DuckDB → Parquet]
-    COMPACTA --> PARQUET[Parquet<br/>data/parquet/<br/>particionado dt=]
+    subgraph GOLD["Gold — Consumo"]
+        ANALISE[analise_onibus.py<br/>--mode parquet/sqlite]
+        DASHBOARD[dashboard_sptrans.py<br/>Streamlit + DuckDB]
+        PARQUET --> ANALISE
+        PARQUET --> DASHBOARD
+        SQLITE -.->|fallback| ANALISE
+        SQLITE -.->|fallback| DASHBOARD
+    end
 
-    PARQUET --> ANALISE[analise_onibus.py<br/>DuckDB / SQLite]
-    PARQUET --> DASHBOARD[dashboard_sptrans.py<br/>Streamlit + DuckDB]
-
-    SQLITE --> EXPURGO[expurgar_sqlite.py<br/>janela deslizante 7d]
-    SQLITE -.-> ANALISE
-    SQLITE -.-> DASHBOARD
+    subgraph ORQUESTRAÇÃO["Orquestração — Dagster"]
+        S1[Schedule */5<br/>posicoes_sptrans]
+        S2[Schedule */15<br/>previsoes_sptrans]
+        S3[Schedule 0 2<br/>compactar_*]
+        S4[Schedule 0 3<br/>expurgar_*]
+        S1 --> POS_COL
+        S2 --> PREV_COL
+        S3 --> COMPACTA
+        S4 --> EXPURGO
+    end
 ```
+
+---
 
 ## Estrutura do Projeto
 
 ```
 .
+├── assets/                 # Assets Dagster (orquestração)
+│   ├── __init__.py         # Definitions + schedules
+│   ├── coleta.py           # posicoes_sptrans, previsoes_sptrans
+│   └── processamento.py    # compactar_*, expurgar_*
 ├── src/                    # Código-fonte
 │   ├── coleta_sptrans.py           # Coleta posições (batch)
 │   ├── coleta_previsoes.py         # Coleta previsões (batch)
@@ -107,8 +190,8 @@ flowchart LR
 │   ├── dashboard_sptrans.py        # Dashboard Streamlit
 │   ├── expurgar_sqlite.py          # Expurgo de janela deslizante
 │   ├── migrar_dedup.py             # Migração one-shot dedup
-│   └── utils/                      # Utilitários (log, config)
-├── tests/                  # Testes (36 tests, pytest)
+│   └── database.py                 # Abstração SQLite ↔ PostgreSQL
+├── tests/                  # Testes (44 + 5 skipped postgres)
 ├── .github/workflows/      # CI (ruff lint + pytest)
 ├── config/
 │   ├── config.ini.template          # Template de configuração
@@ -116,18 +199,21 @@ flowchart LR
 ├── data/
 │   ├── sptrans_data.db              # SQLite principal
 │   └── parquet/                     # Parquet particionado por dt=
-├── docker-compose.yml     # Docker (opcional)
+├── workspace.yaml          # Code location do Dagster
+├── docker-compose.yml      # 5 serviços (inclui dagster + postgres)
 ├── Dockerfile
-├── Makefile               # test, lint, install, clean
-├── pyproject.toml         # ruff + pytest config
-└── requirements*.txt      # Dependências
+├── Makefile                # test, lint, install, clean
+├── pyproject.toml          # ruff + pytest config
+└── requirements*.txt       # Dependências
 ```
+
+---
 
 ## Scripts
 
 ### Coletores
 
-Os coletores escrevem diretamente no SQLite com `INSERT OR IGNORE`, usando
+Os coletores escrevem diretamente no banco com `INSERT OR IGNORE`, usando
 índices `UNIQUE` para garantir idempotência mesmo em reexecuções:
 
 | Script | Função | Execução sugerida |
@@ -149,39 +235,55 @@ Os coletores escrevem diretamente no SQLite com `INSERT OR IGNORE`, usando
 
 | Script | Função |
 | ------ | ------ |
-| `migrar_dedup.py` | Remove duplicatas existentes e aplica UNIQUE INDEX |
+| `migrar_dedup.py` | Remove duplicatas existentes e aplica UNIQUE INDEX (one-shot) |
+| `database.py` | Abstração de banco: SQLite (dev) ↔ PostgreSQL (prod) |
+
+---
 
 ## Schema do Banco
 
 ### `posicoes`
+
 | Coluna | Tipo | Descrição |
 | ------ | ---- | --------- |
-| `timestamp_coleta` | DATETIME | ISO 8601 |
+| `timestamp_coleta` | DATETIME | ISO 8601 — quando os dados foram baixados |
 | `id_onibus` | INTEGER | Identificador do veículo |
-| `letreiro_linha` | TEXT | Letreiro da linha |
-| `lat` / `lon` | REAL | Coordenadas |
-| `timestamp_posicao` | DATETIME | Hora do GPS |
-| Chave natural: `(timestamp_coleta, id_onibus)` | |
+| `letreiro_linha` | TEXT | Letreiro da linha (ex: `8000-10`) |
+| `latitude` / `longitude` | REAL | Coordenadas GPS |
+| `timestamp_posicao` | DATETIME | Hora do GPS (enviada pelo ônibus) |
+
+**Chave natural (dedup):** `(timestamp_coleta, id_onibus)`
 
 ### `previsoes`
+
 | Coluna | Tipo | Descrição |
 | ------ | ---- | --------- |
-| `timestamp_coleta` | DATETIME | ISO 8601 |
+| `timestamp_coleta` | DATETIME | ISO 8601 — quando os dados foram baixados |
 | `id_linha` | INTEGER | Código da linha |
 | `id_onibus` | INTEGER | Veículo |
 | `id_parada` | INTEGER | Ponto de parada |
-| `horario_previsao` | DATETIME | Previsão |
-| Chave natural: `(timestamp_coleta, id_linha, id_onibus, id_parada, horario_previsao)` | |
+| `horario_previsao` | DATETIME | Previsão de chegada |
+
+**Chave natural (dedup):** `(timestamp_coleta, id_linha, id_onibus, id_parada, horario_previsao)`
+
+---
 
 ## Setup
 
-### Via Docker (legado, suportado)
+### Backend de armazenamento: SQLite (padrão) vs PostgreSQL
 
-```bash
-docker compose up -d coleta-posicoes coleta-previsoes
-```
+O pipeline suporta dois backends de armazenamento, controlados pela
+variável de ambiente `DATABASE_URL`:
 
-### Via Python nativo (recomendado)
+| Backend | DATABASE_URL | Uso |
+|---------|-------------|-----|
+| **SQLite** (padrão) | Não definir | Desenvolvimento local, testes |
+| **PostgreSQL** | `postgresql://user:pass@host:5432/db` | Produção, concorrência |
+
+O módulo `src/database.py` abstrai a diferença: `INSERT OR IGNORE` (SQLite)
+vs `INSERT ... ON CONFLICT DO NOTHING` (PostgreSQL), placeholders `?` vs `%s`.
+
+### Com SQLite (padrão)
 
 ```bash
 # 1. Configurar token
@@ -195,13 +297,36 @@ pip install -r requirements.txt
 python src/inicializar_banco.py
 
 # 4. Coletar dados
-python src/coleta_sptrans.py  # posições
-python src/coleta_previsoes.py  # previsões
+python src/coleta_sptrans.py         # posições
+python src/coleta_previsoes.py        # previsões
+```
 
-# 5. Camada analítica (opcional)
+### Com PostgreSQL (produção)
+
+```bash
+# 1. Iniciar PostgreSQL (via Docker)
+docker compose up -d postgres
+
+# 2. Inicializar banco + schema no PostgreSQL
+DATABASE_URL="postgresql://sptrans:sptrans_local@localhost:5432/sptrans" \
+  python src/inicializar_banco.py
+
+# 3. Coletar dados apontando para PostgreSQL
+DATABASE_URL="postgresql://sptrans:sptrans_local@localhost:5432/sptrans" \
+  python src/coleta_sptrans.py
+
+# 4. (Opcional) Migrar dados existentes do SQLite para PostgreSQL
+DATABASE_URL="postgresql://sptrans:sptrans_local@localhost:5432/sptrans" \
+  python src/migrar_postgres.py
+```
+
+### Camada analítica (Parquet + DuckDB)
+
+```bash
 pip install duckdb pyarrow
-python src/compactar_parquet.py          # SQLite → Parquet
-python src/analise_onibus.py --date YYYY-MM-DD --mode parquet
+python src/compactar_parquet.py              # SQLite → Parquet particionado
+python src/compactar_parquet.py --date YYYY-MM-DD  # dia específico
+python src/analise_onibus.py --mode parquet
 ```
 
 ### Dashboard
@@ -218,27 +343,87 @@ python src/expurgar_sqlite.py --dias 30 # expurga >30 dias
 python src/expurgar_sqlite.py --dry-run # simula sem deletar
 ```
 
+O script respeita `DATABASE_URL` — se definido, expurga no PostgreSQL.
+
+---
+
+## Orquestração (Dagster)
+
+O pipeline é orquestrado por **Dagster** com 6 assets e 4 schedules:
+
+| Asset | Schedule | Descrição |
+|-------|----------|-----------|
+| `posicoes_sptrans` | `*/5 * * * *` | Coleta posições dos ônibus |
+| `previsoes_sptrans` | `*/15 * * * *` | Coleta previsões de chegada |
+| `compactar_posicoes` | `0 2 * * *` | SQLite → Parquet (posições) |
+| `compactar_previsoes` | `0 2 * * *` | SQLite → Parquet (previsões) |
+| `expurgar_posicoes` | `0 3 * * *` | Expurga posições >7 dias |
+| `expurgar_previsoes` | `0 3 * * *` | Expurga previsões >7 dias |
+
+Dependências entre assets:
+
+```
+posicoes_sptrans ──→ compactar_posicoes ──→ expurgar_posicoes
+previsoes_sptrans ──→ compactar_previsoes ──→ expurgar_previsoes
+```
+
+### Iniciar o Dagster
+
+```bash
+docker compose up dagster
+# UI em http://localhost:3000
+```
+
+### Desenvolvimento local (sem Docker)
+
+```bash
+pip install dagster dagster-webserver
+dagster dev -w workspace.yaml
+```
+
+---
+
 ## Qualidade e CI
 
 | Gate | Comando | Status |
 | ---- | ------- | ------ |
 | Lint | `make lint` ou `ruff check src/ tests/` | ✅ 0 violações |
-| Testes | `make test` ou `pytest tests/ -q` | ✅ 36/36 passando |
-| CI | GitHub Actions (push/PR) | ✅ Configurado |
+| Testes | `make test` ou `pytest tests/ -q` | ✅ 44/44 + 5 skipped (PostgreSQL) |
+| CI | GitHub Actions (push/PR) | [![CI](https://github.com/Roberton003/projeto_sptrans/actions/workflows/ci.yml/badge.svg)](https://github.com/Roberton003/projeto_sptrans/actions/workflows/ci.yml) |
 
 ### Modelo de dados — idempotência
 
-- Coletores usam `INSERT OR IGNORE` com `UNIQUE INDEX`
+- Coletores usam `INSERT OR IGNORE` (SQLite) / `ON CONFLICT DO NOTHING` (PostgreSQL) com `UNIQUE INDEX`
+- Camada de banco (`src/database.py`) abstrai diferenças de sintaxe entre backends
 - Compactação Parquet usa `OVERWRITE_OR_IGNORE` para reexecução segura
-- Expurgo é reversível via backup do SQLite
+- Expurgo é reversível via backup
+
+---
+
+## Aprendizados de Engenharia
+
+Este projeto ilustra conceitos fundamentais de engenharia de dados:
+
+| Conceito | Como é aplicado aqui |
+|----------|---------------------|
+| **Idempotência** | `INSERT OR IGNORE` + chaves UNIQUE → reexecutar é seguro |
+| **Padrão Medallion** | Bronze (raw) → Silver (Parquet) → Gold (dashboards) |
+| **Abstração de backend** | `src/database.py` troca SQLite ↔ PostgreSQL sem alterar coletores |
+| **Particionamento** | Parquet particionado por `dt=` → consultas escaneiam menos dados |
+| **Janela deslizante** | Expurgo mantém o banco leve; dados históricos ficam em Parquet |
+| **Orquestração declarativa** | Dagster define o que executa, quando e em que ordem |
+| **Fallback resiliente** | Dashboard tenta Parquet primeiro, SQLite se não disponível |
+| **CI/CD** | GitHub Actions + ruff + pytest a cada push |
+
+---
 
 ## Limitações
 
 1. **API pública não autenticada:** desde jun/2025 a SPTrans desativou a
    autenticação por token — a API está aberta, o que reduz a barreira de
    entrada mas pode mudar sem aviso.
-2. **SQLite como singleton:** o banco SQLite trava em escrita concorrente.
-   Múltiplos coletoros simultâneos requerem migração para PostgreSQL.
+2. **SQLite como singleton (legado):** configurar `DATABASE_URL` para PostgreSQL
+   elimina a limitação de concorrência.
 3. **Parquet não é fonte de verdade:** é uma projeção do SQLite para
    performance analítica. Em caso de divergência, o SQLite é a autoridade.
 4. **Sem lineage formal:** não há Data Lineage registrado; depende do
@@ -248,4 +433,3 @@ python src/expurgar_sqlite.py --dry-run # simula sem deletar
 6. **Docker legado:** a configuração Docker existe mas não reflete as
    features de Parquet/DuckDB. Para usar a stack completa, prefira
    execução nativa.
-
