@@ -2,7 +2,6 @@ import configparser
 import json
 import logging
 import os
-import sqlite3
 import time
 from datetime import datetime
 from datetime import time as time_obj
@@ -10,6 +9,11 @@ from datetime import time as time_obj
 import pandas as pd
 import requests
 import schedule
+
+from src.database import (
+    get_connection,
+    insert_sql,
+)
 
 # --- Configuração de Logging (stdout para Docker) ---
 logging.basicConfig(
@@ -21,16 +25,13 @@ logging.basicConfig(
 # --- Configuração do Projeto ---
 BASE_URL = "http://api.olhovivo.sptrans.com.br/v2.1"
 CONFIG_FILE = os.path.join("config", "config.ini")
-DB_PATH = os.path.join("data", "sptrans_data.db")
 CATALOGO_LINHAS_PATH = os.path.join("data", "todas_as_linhas.csv")
 
 
 # --- Funções de Configuração e API ---
 def get_config():
     if not os.path.exists(CONFIG_FILE):
-        raise FileNotFoundError(
-            f"Arquivo de configuração não encontrado em: {CONFIG_FILE}"
-        )
+        raise FileNotFoundError(f"Arquivo de configuração não encontrado em: {CONFIG_FILE}")
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
     return config
@@ -40,9 +41,7 @@ def get_token(config):
     try:
         return config["SPTRANS"]["TOKEN"]
     except KeyError:
-        raise KeyError(
-            "A chave 'TOKEN' não foi encontrada na seção [SPTRANS] do arquivo de configuração."
-        )
+        raise KeyError("A chave 'TOKEN' não foi encontrada na seção [SPTRANS] do arquivo de configuração.")
 
 
 def get_linhas_alvo_ids(config):
@@ -57,23 +56,15 @@ def get_linhas_alvo_ids(config):
 def get_letreiros_alvo(linhas_alvo_ids):
     """Cria um conjunto de letreiros de linha formatados (ex: '8000-10') para filtragem."""
     if not os.path.exists(CATALOGO_LINHAS_PATH):
-        raise FileNotFoundError(
-            f"Catálogo de linhas não encontrado em: {CATALOGO_LINHAS_PATH}"
-        )
+        raise FileNotFoundError(f"Catálogo de linhas não encontrado em: {CATALOGO_LINHAS_PATH}")
 
     df_linhas = pd.read_csv(CATALOGO_LINHAS_PATH)
     # Filtra o DataFrame para manter apenas as linhas cujos IDs estão na nossa lista alvo
     df_filtrado = df_linhas[df_linhas["id_linha"].isin(linhas_alvo_ids)]
 
     # Cria o letreiro no formato 'lt-tl' e o retorna como um conjunto (set) para buscas rápidas
-    letreiros_set = set(
-        df_filtrado["letreiro_numerico"].astype(str)
-        + "-"
-        + df_filtrado["tipo_letreiro"].astype(str)
-    )
-    logging.info(
-        f"{len(letreiros_set)} letreiros de linha alvo carregados para filtragem."
-    )
+    letreiros_set = set(df_filtrado["letreiro_numerico"].astype(str) + "-" + df_filtrado["tipo_letreiro"].astype(str))
+    logging.info(f"{len(letreiros_set)} letreiros de linha alvo carregados para filtragem.")
     return letreiros_set
 
 
@@ -158,28 +149,25 @@ def job(letreiros_alvo):
     )
 
     if not registros_para_salvar:
-        logging.warning(
-            "Nenhum registro de posição para as linhas alvo. Nada a salvar."
-        )
+        logging.warning("Nenhum registro de posição para as linhas alvo. Nada a salvar.")
         return
 
+    columns = [
+        "timestamp_coleta",
+        "id_onibus",
+        "letreiro_linha",
+        "latitude",
+        "longitude",
+        "timestamp_posicao",
+    ]
+    sql = insert_sql("posicoes", columns)
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.executemany(
-            """
-            INSERT OR IGNORE INTO posicoes (timestamp_coleta, id_onibus, letreiro_linha, latitude, longitude, timestamp_posicao)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """,
-            registros_para_salvar,
-        )
-        conn.commit()
-        conn.close()
-        logging.info(
-            f"{len(registros_para_salvar)} novos registros de POSIÇÃO foram salvos no banco de dados."
-        )
-    except sqlite3.Error as e:
-        logging.error(f"Ocorreu um erro ao salvar os dados de posição no SQLite: {e}")
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.executemany(sql, registros_para_salvar)
+        logging.info(f"{len(registros_para_salvar)} novos registros de POSIÇÃO foram salvos no banco de dados.")
+    except Exception as e:
+        logging.error(f"Ocorreu um erro ao salvar os dados de posição: {e}")
 
 
 # --- Execução Principal ---

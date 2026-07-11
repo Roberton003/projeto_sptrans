@@ -17,12 +17,12 @@ import logging
 import os
 from datetime import datetime, timedelta
 
+from src.database import DB_PATH, get_connection
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
-
-DB_PATH = os.path.join("data", "sptrans_data.db")
 
 
 def expurgar(conn, tabela, limite, dry_run=False):
@@ -53,9 +53,7 @@ def expurgar(conn, tabela, limite, dry_run=False):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Expurga janela quente do SQLite (mantém apenas N dias recentes)"
-    )
+    parser = argparse.ArgumentParser(description="Expurga janela quente do SQLite (mantém apenas N dias recentes)")
     parser.add_argument(
         "--dias",
         type=int,
@@ -75,16 +73,14 @@ def main():
 
     limite = datetime.now() - timedelta(days=args.dias)
     logging.info(
-        f"Expurgando registros anteriores a {limite.date()}"
-        f" ({'dry-run' if args.dry_run else 'executando'})..."
+        f"Expurgando registros anteriores a {limite.date()} ({'dry-run' if args.dry_run else 'executando'})..."
     )
 
-    conn = sqlite3.connect(DB_PATH)
-    total = 0
-    for tabela in ("posicoes", "previsoes"):
-        total += expurgar(conn, tabela, limite, dry_run=args.dry_run)
+    with get_connection() as conn:
+        total = 0
+        for tabela in ("posicoes", "previsoes"):
+            total += expurgar(conn, tabela, limite, dry_run=args.dry_run)
 
-    conn.close()
     if not args.dry_run:
         logging.info(f"Total expurgado: {total} registros.")
     else:
@@ -92,6 +88,4 @@ def main():
 
 
 if __name__ == "__main__":
-    import sqlite3
-
     main()

@@ -7,3 +7,6 @@ requests
 matplotlib
 geopy
 streamlit
+dagster>=1.10
+duckdb
+pyarrow

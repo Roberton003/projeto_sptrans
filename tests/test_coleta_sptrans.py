@@ -180,16 +180,13 @@ def test_job_com_dados_salva_no_db(mock_coletar, mock_autenticar, mock_get_token
             "timestamp_posicao DATETIME"
             ")"
         )
-        cursor.execute(
-            "CREATE UNIQUE INDEX IF NOT EXISTS idx_posicoes_dedup "
-            "ON posicoes(timestamp_coleta, id_onibus)"
-        )
+        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_posicoes_dedup ON posicoes(timestamp_coleta, id_onibus)")
         conn.commit()
         conn.close()
 
         real_now = dt.datetime(2025, 8, 15, 10, 0, 0)
 
-        with patch("src.coleta_sptrans.DB_PATH", db_path):
+        with patch("src.database.DB_PATH", db_path):
             with patch("src.coleta_sptrans.datetime") as mock_dt:
                 mock_dt.now.return_value = real_now
 

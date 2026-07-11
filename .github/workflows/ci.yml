@@ -23,7 +23,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-          pip install duckdb pyarrow
+          pip install duckdb pyarrow psycopg2-binary sqlalchemy
 
       - name: Lint (ruff)
         run: ruff check src/ tests/

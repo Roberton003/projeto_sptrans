@@ -11,6 +11,10 @@ x-base-service: &base-service
   volumes:
     - .:/app
 
+# Volume persistente para PostgreSQL
+volumes:
+  postgres_data:
+
 # A seção 'services' define os containers individuais que compõem a aplicação.
 services:
   # Serviço para o coletor de posições de ônibus.
@@ -67,3 +71,36 @@ services:
     # Comando para iniciar o streamlit
     command: >
       sh -c "streamlit run src/dashboard_sptrans.py --server.port=8501 --server.address=0.0.0.0"
+
+  # Banco de dados PostgreSQL (opcional — usar com DATABASE_URL)
+  postgres:
+    image: postgres:16-alpine
+    container_name: sptrans_postgres
+    environment:
+      POSTGRES_DB: sptrans
+      POSTGRES_USER: sptrans
+      POSTGRES_PASSWORD: sptrans_local
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sptrans -d sptrans"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Serviço de orquestração Dagster
+  dagster:
+    <<: *base-service
+    container_name: sptrans_dagster
+    ports:
+      # UI do Dagster
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "pip install sqlalchemy psycopg2-binary && dagster dev -h 0.0.0.0 -p 3000 -w workspace.yaml"

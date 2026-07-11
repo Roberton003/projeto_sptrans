@@ -1,95 +1,53 @@
+"""
+Inicialização do banco de dados — SQLite (padrão) ou PostgreSQL (DATABASE_URL).
+
+Cria as tabelas e índices UNIQUE necessários para o pipeline.
+
+Uso:
+    python src/inicializar_banco.py                      # SQLite (padrão)
+    DATABASE_URL=postgresql://... python src/inicializar_banco.py  # PostgreSQL
+"""
+
 import logging
 import os
-import sqlite3
 
-# --- Configuração ---
+from src.database import get_connection, schema_sql
+
+# Constantes exportadas para testes (backward compat)
+SQL_CREATE_POSICOES, SQL_CREATE_PREVISOES, _ = schema_sql()[0][:3]
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
 DB_PATH = os.path.join("data", "sptrans_data.db")
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
-# --- Schema do Banco de Dados ---
-# Usamos a sintaxe do SQLite para criar as tabelas.
-# 'IF NOT EXISTS' garante que não teremos um erro se o script for executado mais de uma vez.
-
-SQL_CREATE_POSICOES = """
-CREATE TABLE IF NOT EXISTS posicoes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp_coleta DATETIME NOT NULL,
-    id_onibus INTEGER NOT NULL,
-    letreiro_linha TEXT,
-    latitude REAL NOT NULL,
-    longitude REAL NOT NULL,
-    timestamp_posicao DATETIME
-);
-"""
-
-SQL_CREATE_PREVISOES = """
-CREATE TABLE IF NOT EXISTS previsoes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp_coleta DATETIME NOT NULL,
-    id_linha INTEGER NOT NULL,
-    id_onibus INTEGER NOT NULL,
-    id_parada INTEGER,
-    horario_previsao TEXT
-);
-"""
-
-# Adicionamos a planta da nossa nova tabela de resultados
-SQL_CREATE_RESULTADOS = """
-CREATE TABLE IF NOT EXISTS resultados_analise (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp_analise DATETIME NOT NULL,
-    id_onibus INTEGER NOT NULL,
-    letreiro_linha TEXT,
-    posicao_atual_lat REAL,
-    posicao_atual_lon REAL,
-    horario_posicao DATETIME,
-    proximo_ponto_previsto TEXT,
-    horario_previsto_chegada TEXT
-);
-"""
 
 
-# --- Função Principal ---
 def main():
     """Cria o banco de dados e as tabelas."""
-    logging.info(f"Verificando e inicializando o banco de dados em: {DB_PATH}")
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url:
+        logging.info(f"Inicializando banco PostgreSQL: {db_url}")
+    else:
+        logging.info(f"Verificando e inicializando o banco SQLite em: {DB_PATH}")
+
+    tables, indexes = schema_sql()
 
     try:
         os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        with get_connection() as conn:
+            cursor = conn.cursor()
 
-        logging.info("Verificando tabela 'posicoes'...")
-        cursor.execute(SQL_CREATE_POSICOES)
+            logging.info("Criando tabelas...")
+            for sql in tables:
+                cursor.execute(sql)
 
-        logging.info("Verificando tabela 'previsoes'...")
-        cursor.execute(SQL_CREATE_PREVISOES)
-
-        logging.info("Verificando tabela 'resultados_analise'...")
-        cursor.execute(SQL_CREATE_RESULTADOS)
-
-        # --- Índices de Deduplicação (UNIQUE) ---
-        # Garantem idempotência: INSERT OR IGNORE não duplica registros
-        logging.info("Criando índices de deduplicação (UNIQUE)...")
-        cursor.execute("""
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_posicoes_dedup
-            ON posicoes(timestamp_coleta, id_onibus)
-        """)
-        cursor.execute("""
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_previsoes_dedup
-            ON previsoes(timestamp_coleta, id_linha, id_onibus, id_parada, horario_previsao)
-        """)
-        conn.commit()
-        conn.close()
+            logging.info("Criando índices de deduplicação (UNIQUE)...")
+            for sql in indexes:
+                cursor.execute(sql)
 
         logging.info("Banco de dados verificado e pronto para uso!")
 
-    except sqlite3.Error as e:
-        logging.error(f"Ocorreu um erro com o SQLite: {e}")
     except Exception as e:
-        logging.error(f"Ocorreu um erro inesperado: {e}")
+        logging.error(f"Ocorreu um erro ao inicializar o banco: {e}")
 
 
 if __name__ == "__main__":

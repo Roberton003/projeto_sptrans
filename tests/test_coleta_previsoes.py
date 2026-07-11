@@ -107,18 +107,23 @@ def test_job_com_dados_processa_registros(mock_coletar):
     }
     mock_session = MagicMock()
 
-    with patch("src.coleta_previsoes.sqlite3") as mock_sqlite:
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_sqlite.connect.return_value = mock_conn
-        mock_conn.cursor.return_value = mock_cursor
+    from contextlib import contextmanager
 
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+
+    @contextmanager
+    def mock_get_connection():
+        yield mock_conn
+
+    with patch("src.coleta_previsoes.get_connection", mock_get_connection):
         job(mock_session, [2411])
 
-        # Verifica que executemany foi chamado com 2 registros
-        args, _ = mock_cursor.executemany.call_args
-        registros = args[1]
-        assert len(registros) == 2
-        assert registros[0][1] == 2411  # id_linha
-        assert registros[1][1] == 2411
-        mock_conn.commit.assert_called_once()
+    # Verifica que executemany foi chamado com 2 registros
+    # (commit é feito automaticamente pelo context manager de get_connection)
+    args, _ = mock_cursor.executemany.call_args
+    registros = args[1]
+    assert len(registros) == 2
+    assert registros[0][1] == 2411  # id_linha
+    assert registros[1][1] == 2411
