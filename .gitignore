@@ -25,8 +25,9 @@ __pycache__/
 # Checkpoints do Jupyter Notebook
 .ipynb_checkpoints/
 
-# Arquivos de configuração local (o template continua no repositório)
+# Configuração local / segredos / ferramentas pessoais
 config/config.ini
+.private/
 
 # Arquivos arquivados
 arquivos_arquivados/
@@ -35,15 +36,13 @@ arquivos_arquivados/
 .docs_internos/
 
 # Arquivos arquivados e legados (ignorado em repo local e remoto)
-# Contém: analise_scrips/, arquivos_arquivados/, código antigo v1/v2, análises pontuais
-# NÃO sincroniza com GitHub - apenas local para preservar histórico
 .archived/
-# Exceções: arquivos essenciais que devem ser versionados
-# Permitimos explicitamente os relatórios e scripts de análise necessários para o repositório público.
+
+# Exceções para analise_banco_dados
 !analise_banco_dados/relatorios/
-!analise_banco_dados/relatorios/*.csv
-!analise_banco_dados/relatorios/*.html
-!analise_banco_dados/relatorios/*.py
-!analise_banco_dados/relatorios/README.md
+!analise_banco_dados/relatorios/*
 !analise_banco_dados/queries/
 !analise_banco_dados/queries/*.sql
+
+# Configuração do IDE Serena
+.serena/

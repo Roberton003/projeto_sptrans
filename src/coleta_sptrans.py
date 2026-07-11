@@ -2,66 +2,80 @@ import configparser
 import json
 import logging
 import os
-import time
 import sqlite3
-from datetime import datetime, time as time_obj
+import time
+from datetime import datetime
+from datetime import time as time_obj
 
+import pandas as pd
 import requests
 import schedule
-import pandas as pd
 
-# --- Configuração de Logging ---
-LOG_FILE = 'coleta.log'
+# --- Configuração de Logging (stdout para Docker) ---
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(LOG_FILE),
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
 )
 
 # --- Configuração do Projeto ---
-BASE_URL = 'http://api.olhovivo.sptrans.com.br/v2.1'
-CONFIG_FILE = os.path.join('config', 'config.ini')
-DB_PATH = os.path.join('data', 'sptrans_data.db')
-CATALOGO_LINHAS_PATH = os.path.join('data', 'todas_as_linhas.csv')
+BASE_URL = "http://api.olhovivo.sptrans.com.br/v2.1"
+CONFIG_FILE = os.path.join("config", "config.ini")
+DB_PATH = os.path.join("data", "sptrans_data.db")
+CATALOGO_LINHAS_PATH = os.path.join("data", "todas_as_linhas.csv")
+
 
 # --- Funções de Configuração e API ---
 def get_config():
     if not os.path.exists(CONFIG_FILE):
-        raise FileNotFoundError(f"Arquivo de configuração não encontrado em: {CONFIG_FILE}")
+        raise FileNotFoundError(
+            f"Arquivo de configuração não encontrado em: {CONFIG_FILE}"
+        )
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
     return config
 
+
 def get_token(config):
     try:
-        return config['SPTRANS']['TOKEN']
+        return config["SPTRANS"]["TOKEN"]
     except KeyError:
-        raise KeyError("A chave 'TOKEN' não foi encontrada na seção [SPTRANS] do arquivo de configuração.")
+        raise KeyError(
+            "A chave 'TOKEN' não foi encontrada na seção [SPTRANS] do arquivo de configuração."
+        )
+
 
 def get_linhas_alvo_ids(config):
     try:
-        linhas_str = config['COLETA']['LINHAS_ALVO']
-        return [int(x.strip()) for x in linhas_str.split(',')]
+        linhas_str = config["COLETA"]["LINHAS_ALVO"]
+        return [int(x.strip()) for x in linhas_str.split(",")]
     except (KeyError, ValueError) as e:
         logging.error(f"Erro ao ler ou processar as linhas alvo do config.ini: {e}")
         return []
 
+
 def get_letreiros_alvo(linhas_alvo_ids):
     """Cria um conjunto de letreiros de linha formatados (ex: '8000-10') para filtragem."""
     if not os.path.exists(CATALOGO_LINHAS_PATH):
-        raise FileNotFoundError(f"Catálogo de linhas não encontrado em: {CATALOGO_LINHAS_PATH}")
-    
+        raise FileNotFoundError(
+            f"Catálogo de linhas não encontrado em: {CATALOGO_LINHAS_PATH}"
+        )
+
     df_linhas = pd.read_csv(CATALOGO_LINHAS_PATH)
     # Filtra o DataFrame para manter apenas as linhas cujos IDs estão na nossa lista alvo
-    df_filtrado = df_linhas[df_linhas['id_linha'].isin(linhas_alvo_ids)]
-    
+    df_filtrado = df_linhas[df_linhas["id_linha"].isin(linhas_alvo_ids)]
+
     # Cria o letreiro no formato 'lt-tl' e o retorna como um conjunto (set) para buscas rápidas
-    letreiros_set = set(df_filtrado['letreiro_numerico'].astype(str) + '-' + df_filtrado['tipo_letreiro'].astype(str))
-    logging.info(f"{len(letreiros_set)} letreiros de linha alvo carregados para filtragem.")
+    letreiros_set = set(
+        df_filtrado["letreiro_numerico"].astype(str)
+        + "-"
+        + df_filtrado["tipo_letreiro"].astype(str)
+    )
+    logging.info(
+        f"{len(letreiros_set)} letreiros de linha alvo carregados para filtragem."
+    )
     return letreiros_set
+
 
 def autenticar(token, session):
     url = f"{BASE_URL}/Login/Autenticar?token={token}"
@@ -72,6 +86,7 @@ def autenticar(token, session):
     except requests.exceptions.RequestException as e:
         logging.error(f"Erro de conexão durante a autenticação: {e}")
         return False
+
 
 def coletar_posicoes(session):
     url = f"{BASE_URL}/Posicao"
@@ -86,6 +101,7 @@ def coletar_posicoes(session):
         logging.error("Erro ao decodificar a resposta JSON da API de posições.")
         return None
 
+
 # --- Job de Coleta com Filtro Inteligente ---
 def job(letreiros_alvo):
     """Coleta os dados de posição, filtra pelas linhas de interesse e insere no banco."""
@@ -98,7 +114,7 @@ def job(letreiros_alvo):
         return
 
     logging.info("Iniciando novo ciclo de coleta de POSIÇÕES com filtro inteligente...")
-    
+
     try:
         config = get_config()
         token = get_token(config)
@@ -108,51 +124,63 @@ def job(letreiros_alvo):
 
     session = requests.Session()
     if not autenticar(token, session):
-        logging.error('Não foi possível autenticar na API. Abortando ciclo.')
+        logging.error("Não foi possível autenticar na API. Abortando ciclo.")
         return
 
     dados = coletar_posicoes(session)
-    if not dados or not dados.get('l'):
-        logging.warning('Nenhum dado de posição foi coletado neste ciclo.')
+    if not dados or not dados.get("l"):
+        logging.warning("Nenhum dado de posição foi coletado neste ciclo.")
         return
 
     timestamp_coleta = datetime.now()
     registros_para_salvar = []
     total_veiculos_api = 0
     # O FILTRO INTELIGENTE ACONTECE AQUI!
-    for linha in dados['l']:
-        letreiro_linha = linha.get('c')
-        total_veiculos_api += len(linha.get('vs', []))
+    for linha in dados["l"]:
+        letreiro_linha = linha.get("c")
+        total_veiculos_api += len(linha.get("vs", []))
         # Verifica se o letreiro da linha está na nossa lista de interesse
         if letreiro_linha in letreiros_alvo:
-            for veiculo in linha.get('vs', []):
-                registros_para_salvar.append((
-                    timestamp_coleta,
-                    veiculo.get('p'),
-                    letreiro_linha,
-                    veiculo.get('py'),
-                    veiculo.get('px'),
-                    veiculo.get('ta')
-                ))
-    
-    logging.info(f"API retornou {total_veiculos_api} veículos. Após o filtro, {len(registros_para_salvar)} serão salvos.")
+            for veiculo in linha.get("vs", []):
+                registros_para_salvar.append(
+                    (
+                        timestamp_coleta,
+                        veiculo.get("p"),
+                        letreiro_linha,
+                        veiculo.get("py"),
+                        veiculo.get("px"),
+                        veiculo.get("ta"),
+                    )
+                )
+
+    logging.info(
+        f"API retornou {total_veiculos_api} veículos. Após o filtro, {len(registros_para_salvar)} serão salvos."
+    )
 
     if not registros_para_salvar:
-        logging.warning("Nenhum registro de posição para as linhas alvo. Nada a salvar.")
+        logging.warning(
+            "Nenhum registro de posição para as linhas alvo. Nada a salvar."
+        )
         return
 
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.executemany("""
-            INSERT INTO posicoes (timestamp_coleta, id_onibus, letreiro_linha, latitude, longitude, timestamp_posicao)
+        cursor.executemany(
+            """
+            INSERT OR IGNORE INTO posicoes (timestamp_coleta, id_onibus, letreiro_linha, latitude, longitude, timestamp_posicao)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, registros_para_salvar)
+        """,
+            registros_para_salvar,
+        )
         conn.commit()
         conn.close()
-        logging.info(f"{len(registros_para_salvar)} novos registros de POSIÇÃO foram salvos no banco de dados.")
+        logging.info(
+            f"{len(registros_para_salvar)} novos registros de POSIÇÃO foram salvos no banco de dados."
+        )
     except sqlite3.Error as e:
         logging.error(f"Ocorreu um erro ao salvar os dados de posição no SQLite: {e}")
+
 
 # --- Execução Principal ---
 def main():
@@ -176,6 +204,7 @@ def main():
     while True:
         schedule.run_pending()
         time.sleep(1)
+
 
 if __name__ == "__main__":
     main()

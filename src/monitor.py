@@ -1,8 +1,8 @@
-import os
-import sqlite3
 import logging
-from datetime import datetime, timedelta
+import os
 import smtplib
+import sqlite3
+from datetime import datetime
 from email.message import EmailMessage
 
 # --- Configuração ---
@@ -69,7 +69,7 @@ def enviar_alerta_email(problemas):
         msg['Subject'] = "[ALERTA] Problema na Pipeline de Dados SPTrans"
         msg['From'] = EMAIL_USER
         msg['To'] = EMAIL_RECIPIENT
-        
+
         corpo_email = "Os seguintes problemas foram detectados na pipeline de dados:\n\n" + "\n".join(f"- {p}" for p in problemas)
         msg.set_content(corpo_email)
 
@@ -78,7 +78,7 @@ def enviar_alerta_email(problemas):
             s.starttls()
             s.login(EMAIL_USER, EMAIL_PASSWORD)
             s.send_message(msg)
-        
+
         logging.info("E-mail de alerta enviado com sucesso!")
 
     except Exception as e:

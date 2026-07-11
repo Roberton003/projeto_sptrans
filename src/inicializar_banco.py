@@ -1,10 +1,12 @@
-import sqlite3
-import os
 import logging
+import os
+import sqlite3
 
 # --- Configuração ---
-DB_PATH = os.path.join('data', 'sptrans_data.db')
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+DB_PATH = os.path.join("data", "sptrans_data.db")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # --- Schema do Banco de Dados ---
 # Usamos a sintaxe do SQLite para criar as tabelas.
@@ -48,6 +50,7 @@ CREATE TABLE IF NOT EXISTS resultados_analise (
 );
 """
 
+
 # --- Função Principal ---
 def main():
     """Cria o banco de dados e as tabelas."""
@@ -60,13 +63,24 @@ def main():
 
         logging.info("Verificando tabela 'posicoes'...")
         cursor.execute(SQL_CREATE_POSICOES)
-        
+
         logging.info("Verificando tabela 'previsoes'...")
         cursor.execute(SQL_CREATE_PREVISOES)
 
         logging.info("Verificando tabela 'resultados_analise'...")
         cursor.execute(SQL_CREATE_RESULTADOS)
 
+        # --- Índices de Deduplicação (UNIQUE) ---
+        # Garantem idempotência: INSERT OR IGNORE não duplica registros
+        logging.info("Criando índices de deduplicação (UNIQUE)...")
+        cursor.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_posicoes_dedup
+            ON posicoes(timestamp_coleta, id_onibus)
+        """)
+        cursor.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_previsoes_dedup
+            ON previsoes(timestamp_coleta, id_linha, id_onibus, id_parada, horario_previsao)
+        """)
         conn.commit()
         conn.close()
 
@@ -76,6 +90,7 @@ def main():
         logging.error(f"Ocorreu um erro com o SQLite: {e}")
     except Exception as e:
         logging.error(f"Ocorreu um erro inesperado: {e}")
+
 
 if __name__ == "__main__":
     main()

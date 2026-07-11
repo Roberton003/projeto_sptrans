@@ -1,4 +1,4 @@
-.PHONY: install install-dev test clean
+.PHONY: install install-dev test lint clean
 
 install:
 	pip install -r requirements.txt
@@ -7,7 +7,10 @@ install-dev:
 	pip install -r requirements-dev.txt
 
 test:
-	python -m unittest discover -s tests
+	python -m pytest tests/ -q
+
+lint:
+	ruff check src/ tests/
 
 clean:
 	find . -type f -name '*.pyc' -delete
