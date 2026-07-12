@@ -9,6 +9,9 @@ class TestRegistrarLinhagem:
         """Insere e consulta registro na tabela lineage_audit."""
         from src.database import registrar_linhagem, schema_sql
 
+        # Garante modo SQLite para este teste, mesmo se DATABASE_URL estiver setado
+        original_database_url = os.environ.pop("DATABASE_URL", None)
+
         # Usa SQLite temporário
         with tempfile.TemporaryDirectory() as tmp:
             # Forçamos caminho temporário via patch
@@ -48,6 +51,8 @@ class TestRegistrarLinhagem:
             finally:
                 src.database.DB_PATH = original_db
                 src.database.SQLITE_PATH = original_sqlite
+                if original_database_url is not None:
+                    os.environ["DATABASE_URL"] = original_database_url
 
     def test_registrar_sem_banco(self):
         """Não deve levantar exceção se o banco não existir."""

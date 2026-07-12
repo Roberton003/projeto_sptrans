@@ -24,12 +24,26 @@ import os
 from contextlib import contextmanager
 from datetime import datetime
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
 SQLITE_PATH = os.path.join("data", "sptrans_data.db")
 DB_PATH = SQLITE_PATH  # alias para compatibilidade com módulos existentes
-IS_POSTGRES = DATABASE_URL is not None
 
 logger = logging.getLogger(__name__)
+
+
+def get_database_url():
+    """Retorna DATABASE_URL do ambiente (lida em tempo de execução)."""
+    return os.environ.get("DATABASE_URL")
+
+
+def is_postgres():
+    """True se DATABASE_URL estiver configurada (avaliação em runtime)."""
+    return get_database_url() is not None
+
+
+# Backward compatibility: expõe aliases que refletem o estado no momento do import.
+# Preferir get_database_url() / is_postgres() em código novo.
+DATABASE_URL = get_database_url()
+IS_POSTGRES = is_postgres()
 
 
 def get_db_path():
@@ -46,10 +60,10 @@ def get_connection():
             conn.execute(...)
         # commit automático no final; rollback em exceção
     """
-    if IS_POSTGRES:
+    if is_postgres():
         import psycopg2
 
-        conn = psycopg2.connect(DATABASE_URL)
+        conn = psycopg2.connect(get_database_url())
     else:
         import sqlite3
 
@@ -67,7 +81,7 @@ def get_connection():
 
 def schema_sql():
     """Retorna tupla (create_sql_list, index_sql_list) adequada ao backend."""
-    if IS_POSTGRES:
+    if is_postgres():
         return _schema_postgres()
     return _schema_sqlite()
 
@@ -99,9 +113,10 @@ def registrar_linhagem(asset_name: str, table_name: str, layer: str, row_count: 
     """
     try:
         with get_connection() as conn:
+            ph = "%s" if is_postgres() else "?"
             conn.execute(
-                "INSERT INTO lineage_audit (asset_name, table_name, layer, run_timestamp, row_count, status) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
+                f"INSERT INTO lineage_audit (asset_name, table_name, layer, run_timestamp, row_count, status) "
+                f"VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph})",
                 (asset_name, table_name, layer, datetime.now().isoformat(), row_count, status),
             )
         logger.debug("Linhagem registrada: %s/%s (%s, %s registros)", layer, table_name, asset_name, row_count)
@@ -239,10 +254,10 @@ def insert_sql(table, columns, or_ignore=True):
         String SQL com placeholders no formato correto.
     """
     cols = ", ".join(columns)
-    ph = ", ".join(["?" if not IS_POSTGRES else "%s"] * len(columns))
+    ph = ", ".join(["%s" if is_postgres() else "?"] * len(columns))
 
     if or_ignore:
-        if IS_POSTGRES:
+        if is_postgres():
             return f"INSERT INTO {table} ({cols}) VALUES ({ph}) ON CONFLICT DO NOTHING"
         else:
             return f"INSERT OR IGNORE INTO {table} ({cols}) VALUES ({ph})"

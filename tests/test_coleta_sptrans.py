@@ -138,6 +138,9 @@ def _make_time(hour, minute):
 @patch("src.coleta_sptrans.coletar_posicoes")
 def test_job_com_dados_salva_no_db(mock_coletar, mock_autenticar, mock_get_token, mock_get_config):
     """Job com dados válidos insere registros filtrados no SQLite."""
+    # Garante modo SQLite para este teste, mesmo se DATABASE_URL estiver setado
+    original_database_url = os.environ.pop("DATABASE_URL", None)
+
     mock_get_config.return_value = {
         "SPTRANS": {"TOKEN": "x"},
         "COLETA": {"LINHAS_ALVO": "2411"},
@@ -205,3 +208,5 @@ def test_job_com_dados_salva_no_db(mock_coletar, mock_autenticar, mock_get_token
     finally:
         if os.path.exists(db_path):
             os.unlink(db_path)
+        if original_database_url is not None:
+            os.environ["DATABASE_URL"] = original_database_url
