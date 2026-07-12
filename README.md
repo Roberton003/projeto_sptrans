@@ -191,7 +191,7 @@ flowchart TB
 │   ├── expurgar_sqlite.py          # Expurgo de janela deslizante
 │   ├── migrar_dedup.py             # Migração one-shot dedup
 │   └── database.py                 # Abstração SQLite ↔ PostgreSQL
-├── tests/                  # Testes (62 + 5 skipped postgres)
+├── tests/                  # Testes (62 ativos + 5 PostgreSQL condicionais)
 ├── .github/workflows/      # CI (ruff lint + pytest)
 ├── config/
 │   ├── config.ini.template          # Template de configuração
@@ -388,8 +388,12 @@ dagster dev -w workspace.yaml
 | Gate | Comando | Status |
 | ---- | ------- | ------ |
 | Lint | `make lint` ou `ruff check src/ tests/` | ✅ 0 violações |
-| Testes | `make test` ou `pytest tests/ -q` | ✅ 62/62 + 5 skipped (PostgreSQL) |
+| Testes | `make test` ou `pytest tests/ -q` | ✅ 62/62 + 5 skipped (PostgreSQL¹) |
 | CI | GitHub Actions (push/PR) | [![CI](https://github.com/Roberton003/projeto_sptrans/actions/workflows/ci.yml/badge.svg)](https://github.com/Roberton003/projeto_sptrans/actions/workflows/ci.yml) |
+
+¹ **Testes PostgreSQL:** 5 testes em `tests/test_postgres.py` rodam apenas quando
+`DATABASE_URL` está configurada. Com PostgreSQL real via Docker, a suite completa
+fica em **67/67 passando**. O CI roda sem PostgreSQL, por isso aparecem 5 skipped.
 
 ### Modelo de dados — idempotência
 
