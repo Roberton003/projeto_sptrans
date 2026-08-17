@@ -1,3 +1,17 @@
+<div align="center">
+
+# projeto_sptrans
+
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![PostGIS](https://img.shields.io/badge/PostGIS-GIS-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgis.net/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+
+<p><b>Data Warehouse e rastreamento da frota de transporte público de SP em tempo real.</b></p>
+
+<img src="docs/images/project-hero.svg" alt="projeto_sptrans Hero Banner" width="760">
+
+</div>
+
 # 🚌 SPTrans Real-Time Public Transport Data Pipeline
 
 [![CI](https://github.com/Roberton003/projeto_sptrans/actions/workflows/ci.yml/badge.svg)](https://github.com/Roberton003/projeto_sptrans/actions/workflows/ci.yml)

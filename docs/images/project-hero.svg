@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" role="img" aria-labelledby="title desc">
+  <title id="title">Projeto SPTrans - Public Transport Fleet Telemetry DW</title>
+  <desc id="desc">Ingestão em tempo real da API Olho Vivo SPTrans com Data Warehouse e análise de frota urbana</desc>
+  <style>
+    :root{ --bg:#1a0f00; --ok:#eab308; --bad:#ef4444; --cur:#f97316; --gate:#ca8a04; --ink:#fefce8; --sub:#fef08a; }
+    *{transform-box:fill-box;}
+    @keyframes scan{ from{transform:translateX(0)} to{transform:translateX(200px)} }
+    @keyframes down{ 0%,55%{transform:translateY(0);opacity:1} 70%,100%{transform:translateY(120px);opacity:.9} }
+    @keyframes pass{ 0%,45%{transform:translateX(0);opacity:1} 75%,100%{transform:translateX(300px);opacity:0} }
+    @keyframes gateGlow{ 0%,100%{opacity:.25} 50%{opacity:1} }
+    @keyframes spFill{ from{stroke-dashoffset:440} to{stroke-dashoffset:100} }
+    .scan{animation:scan 2.6s ease-in-out infinite alternate}
+    .okdrop{animation:pass 2.6s linear infinite}
+    .baddrop{animation:down 2.6s linear infinite}
+    .gate{animation:gateGlow 1.4s ease-in-out infinite}
+    .ring{stroke-dasharray:440 440;animation:spFill 4s ease-in-out infinite alternate}
+    @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
+  </style>
+  <rect width="800" height="360" fill="var(--bg)"/>
+  <g transform="translate(40,60)">
+    <text x="0" y="-8" font-size="13" fill="var(--sub)" font-family="system-ui">API Olho Vivo SPTrans (frota em tempo real)</text>
+    <path d="M0 40 Q25 10 50 40 T100 40 T150 40 T200 40 T250 40" fill="none" stroke="var(--cur)" stroke-width="4"/>
+    <g class="scan"><circle cx="250" cy="40" r="10" fill="var(--cur)" opacity=".9"/></g>
+    <g class="okdrop"><circle cx="60" cy="70" r="9" fill="var(--ok)"/></g>
+    <g class="baddrop" style="animation-delay:1.3s"><circle cx="120" cy="70" r="9" fill="var(--bad)"/></g>
+  </g>
+  <g transform="translate(300,40)">
+    <text x="0" y="-8" font-size="13" fill="var(--sub)" font-family="system-ui">processamento espacial &amp; DW</text>
+    <g transform="translate(0,0)"><rect class="gate" x="-6" y="0" width="12" height="70" rx="4" fill="var(--gate)"/><text x="0" y="88" font-size="9" text-anchor="middle" fill="var(--ink)" font-family="system-ui">GPS</text></g>
+    <g transform="translate(46,0)"><rect class="gate" style="animation-delay:.3s" x="-6" y="0" width="12" height="70" rx="4" fill="var(--gate)"/><text x="0" y="88" font-size="9" text-anchor="middle" fill="var(--ink)" font-family="system-ui">Linhas</text></g>
+    <g transform="translate(92,0)"><rect class="gate" style="animation-delay:.6s" x="-6" y="0" width="12" height="70" rx="4" fill="var(--gate)"/><text x="0" y="88" font-size="9" text-anchor="middle" fill="var(--ink)" font-family="system-ui">DW</text></g>
+    <g transform="translate(138,0)"><rect class="gate" style="animation-delay:.9s" x="-6" y="0" width="12" height="70" rx="4" fill="var(--gate)"/><text x="0" y="88" font-size="9" text-anchor="middle" fill="var(--ink)" font-family="system-ui">Speed</text></g>
+  </g>
+  <g transform="translate(60,260)">
+    <rect x="-70" y="-22" width="160" height="44" rx="10" fill="#7f1d1d"/>
+    <text x="10" y="3" font-size="12" text-anchor="middle" fill="#fecaca" font-family="system-ui" font-weight="700">falha de sinal GPS</text>
+  </g>
+  <g transform="translate(620,180)">
+    <circle r="86" fill="none" stroke="#451a03" stroke-width="16"/>
+    <circle class="ring" r="86" fill="none" stroke="var(--ok)" stroke-width="16" transform="rotate(-90)"/>
+    <text x="0" y="-2" font-size="20" text-anchor="middle" fill="var(--ok)" font-family="system-ui" font-weight="700">15.000+</text>
+    <text x="0" y="20" font-size="12" text-anchor="middle" fill="var(--sub)" font-family="system-ui">ônibus rastreados/dia</text>
+  </g>
+</svg>
