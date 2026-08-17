@@ -1,44 +1,73 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" role="img" aria-labelledby="title desc">
   <title id="title">Projeto SPTrans - Public Transport Fleet Telemetry DW</title>
-  <desc id="desc">Ingestão em tempo real da API Olho Vivo SPTrans com Data Warehouse e análise de frota urbana</desc>
+  <desc id="desc">Rastreamento de frota de ônibus de São Paulo em tempo real com linhas intermodais e radar GPS</desc>
   <style>
-    :root{ --bg:#1a0f00; --ok:#eab308; --bad:#ef4444; --cur:#f97316; --gate:#ca8a04; --ink:#fefce8; --sub:#fef08a; }
+    :root{ --bg:#180e02; --amber:#f59e0b; --orange:#f97316; --yellow:#fde047; --green:#22c55e; --ink:#fffbeb; --sub:#fef08a; }
     *{transform-box:fill-box;}
-    @keyframes scan{ from{transform:translateX(0)} to{transform:translateX(200px)} }
-    @keyframes down{ 0%,55%{transform:translateY(0);opacity:1} 70%,100%{transform:translateY(120px);opacity:.9} }
-    @keyframes pass{ 0%,45%{transform:translateX(0);opacity:1} 75%,100%{transform:translateX(300px);opacity:0} }
-    @keyframes gateGlow{ 0%,100%{opacity:.25} 50%{opacity:1} }
-    @keyframes spFill{ from{stroke-dashoffset:440} to{stroke-dashoffset:100} }
-    .scan{animation:scan 2.6s ease-in-out infinite alternate}
-    .okdrop{animation:pass 2.6s linear infinite}
-    .baddrop{animation:down 2.6s linear infinite}
-    .gate{animation:gateGlow 1.4s ease-in-out infinite}
-    .ring{stroke-dasharray:440 440;animation:spFill 4s ease-in-out infinite alternate}
-    @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
+    @keyframes radarSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .radarSweep {
+      transform-origin: 400px 160px;
+      animation: radarSpin 4s linear infinite;
+    }
+    @keyframes busMove1 {
+      0% { transform: translate(120px, 160px); }
+      50% { transform: translate(400px, 160px); }
+      100% { transform: translate(680px, 160px); }
+    }
+    .busPing1 { animation: busMove1 5s ease-in-out infinite; }
+    @keyframes busMove2 {
+      0% { transform: translate(400px, 60px); }
+      100% { transform: translate(400px, 260px); }
+    }
+    .busPing2 { animation: busMove2 4s ease-in-out infinite alternate; }
   </style>
-  <rect width="800" height="360" fill="var(--bg)"/>
-  <g transform="translate(40,60)">
-    <text x="0" y="-8" font-size="13" fill="var(--sub)" font-family="system-ui">API Olho Vivo SPTrans (frota em tempo real)</text>
-    <path d="M0 40 Q25 10 50 40 T100 40 T150 40 T200 40 T250 40" fill="none" stroke="var(--cur)" stroke-width="4"/>
-    <g class="scan"><circle cx="250" cy="40" r="10" fill="var(--cur)" opacity=".9"/></g>
-    <g class="okdrop"><circle cx="60" cy="70" r="9" fill="var(--ok)"/></g>
-    <g class="baddrop" style="animation-delay:1.3s"><circle cx="120" cy="70" r="9" fill="var(--bad)"/></g>
+  <rect width="800" height="360" fill="var(--bg)" rx="12"/>
+  <g transform="translate(400, 160)" opacity="0.3">
+    <circle r="60" fill="none" stroke="var(--amber)" stroke-width="1.5"/>
+    <circle r="110" fill="none" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <circle r="150" fill="none" stroke="var(--amber)" stroke-width="1.5"/>
+    <line x1="-180" y1="0" x2="180" y2="0" stroke="var(--amber)" stroke-width="1"/>
+    <line x1="0" y1="-140" x2="0" y2="140" stroke="var(--amber)" stroke-width="1"/>
   </g>
-  <g transform="translate(300,40)">
-    <text x="0" y="-8" font-size="13" fill="var(--sub)" font-family="system-ui">processamento espacial &amp; DW</text>
-    <g transform="translate(0,0)"><rect class="gate" x="-6" y="0" width="12" height="70" rx="4" fill="var(--gate)"/><text x="0" y="88" font-size="9" text-anchor="middle" fill="var(--ink)" font-family="system-ui">GPS</text></g>
-    <g transform="translate(46,0)"><rect class="gate" style="animation-delay:.3s" x="-6" y="0" width="12" height="70" rx="4" fill="var(--gate)"/><text x="0" y="88" font-size="9" text-anchor="middle" fill="var(--ink)" font-family="system-ui">Linhas</text></g>
-    <g transform="translate(92,0)"><rect class="gate" style="animation-delay:.6s" x="-6" y="0" width="12" height="70" rx="4" fill="var(--gate)"/><text x="0" y="88" font-size="9" text-anchor="middle" fill="var(--ink)" font-family="system-ui">DW</text></g>
-    <g transform="translate(138,0)"><rect class="gate" style="animation-delay:.9s" x="-6" y="0" width="12" height="70" rx="4" fill="var(--gate)"/><text x="0" y="88" font-size="9" text-anchor="middle" fill="var(--ink)" font-family="system-ui">Speed</text></g>
+  <g class="radarSweep">
+    <path d="M 400,160 L 550,160 A 150,150 0 0,0 400,10 Z" fill="url(#radarGrad)" opacity="0.4"/>
   </g>
-  <g transform="translate(60,260)">
-    <rect x="-70" y="-22" width="160" height="44" rx="10" fill="#7f1d1d"/>
-    <text x="10" y="3" font-size="12" text-anchor="middle" fill="#fecaca" font-family="system-ui" font-weight="700">falha de sinal GPS</text>
+  <defs>
+    <linearGradient id="radarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--amber)" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="var(--amber)" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M 100,160 L 700,160" stroke="#78350f" stroke-width="14" stroke-linecap="round"/>
+  <path d="M 100,160 L 700,160" stroke="var(--amber)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 400,50 L 400,270" stroke="#78350f" stroke-width="14" stroke-linecap="round"/>
+  <path d="M 400,50 L 400,270" stroke="var(--orange)" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="400" cy="160" r="16" fill="var(--amber)" stroke="var(--ink)" stroke-width="3"/>
+  <text x="400" y="195" font-size="11" font-weight="800" fill="var(--yellow)" text-anchor="middle" font-family="system-ui">TERM. PARQUE DOM PEDRO</text>
+  <circle cx="200" cy="160" r="10" fill="#78350f" stroke="var(--amber)" stroke-width="2"/>
+  <circle cx="600" cy="160" r="10" fill="#78350f" stroke="var(--amber)" stroke-width="2"/>
+  <circle cx="400" cy="90" r="10" fill="#78350f" stroke="var(--orange)" stroke-width="2"/>
+  <circle cx="400" cy="230" r="10" fill="#78350f" stroke="var(--orange)" stroke-width="2"/>
+  <g class="busPing1">
+    <rect x="-12" y="-8" width="24" height="16" rx="4" fill="var(--yellow)" stroke="#000" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="14" fill="var(--yellow)" opacity="0.3"/>
   </g>
-  <g transform="translate(620,180)">
-    <circle r="86" fill="none" stroke="#451a03" stroke-width="16"/>
-    <circle class="ring" r="86" fill="none" stroke="var(--ok)" stroke-width="16" transform="rotate(-90)"/>
-    <text x="0" y="-2" font-size="20" text-anchor="middle" fill="var(--ok)" font-family="system-ui" font-weight="700">15.000+</text>
-    <text x="0" y="20" font-size="12" text-anchor="middle" fill="var(--sub)" font-family="system-ui">ônibus rastreados/dia</text>
+  <g class="busPing2">
+    <rect x="-8" y="-12" width="16" height="24" rx="4" fill="var(--green)" stroke="#000" stroke-width="1.5"/>
+  </g>
+  <g transform="translate(40, 40)">
+    <rect x="0" y="0" width="180" height="80" rx="10" fill="#451a03" stroke="var(--amber)" stroke-width="1.5"/>
+    <text x="16" y="24" font-size="11" font-weight="700" fill="var(--sub)" font-family="system-ui">FROTA EM OPERAÇÃO</text>
+    <text x="16" y="56" font-size="24" font-weight="900" fill="var(--ink)" font-family="system-ui">14.850</text>
+    <text x="16" y="70" font-size="10" fill="var(--yellow)" font-family="system-ui">API Olho Vivo SPTrans</text>
+  </g>
+  <g transform="translate(580, 40)">
+    <rect x="0" y="0" width="180" height="80" rx="10" fill="#451a03" stroke="var(--amber)" stroke-width="1.5"/>
+    <text x="16" y="24" font-size="11" font-weight="700" fill="var(--sub)" font-family="system-ui">PONTUALIDADE</text>
+    <text x="16" y="56" font-size="24" font-weight="900" fill="var(--green)" font-family="system-ui">98.4%</text>
+    <text x="16" y="70" font-size="10" fill="#86efac" font-family="system-ui">Cumprimento de partidas</text>
   </g>
 </svg>
